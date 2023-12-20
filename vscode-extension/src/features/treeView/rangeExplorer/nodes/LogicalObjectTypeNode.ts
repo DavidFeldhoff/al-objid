@@ -1,18 +1,19 @@
-import { LogicalObjectTypeRangeConsumptionNode } from "./LogicalObjectTypeRangeConsumptionNode";
 import { TreeItemCollapsibleState } from "vscode";
-import { AppAwareNode } from "../../AppAwareNode";
-import { Node } from "../../Node";
-import { ObjectTypeNode } from "./ObjectTypeNode";
-import { LogicalObjectTypeRangesNode } from "./LogicalObjectTypeRangesNode";
-import { NinjaIcon } from "../../../../lib/NinjaIcon";
 import {
     GoToDefinitionCommandContext,
     GoToDefinitionContext,
     GoToDefinitionFile,
     GoToDefinitionType,
 } from "../../../../commands/contexts/GoToDefinitionCommandContext";
+import { NinjaIcon } from "../../../../lib/NinjaIcon";
 import { NinjaALRange } from "../../../../lib/types/NinjaALRange";
+import { AppAwareNode } from "../../AppAwareNode";
 import { ContextValues } from "../../ContextValues";
+import { Node } from "../../Node";
+import { LogicalObjectTypeRangeConsumptionNode } from "./LogicalObjectTypeRangeConsumptionNode";
+import { LogicalObjectTypeRangesNode } from "./LogicalObjectTypeRangesNode";
+import { ObjectTypeNode } from "./ObjectTypeNode";
+import { consumptionNodeProperty, getNodesOfRanges, rangesNodeProperty } from "../../../../lib/functions/getNodesOfRanges";
 
 /**
  * Represents an individual logical object type specified under `objectTypes` in `.objidconfig`.
@@ -38,28 +39,15 @@ export class LogicalObjectTypeNode extends ObjectTypeNode implements GoToDefinit
 
     protected override getChildren(): Node[] {
         const logicalRanges = this.app.config.getObjectTypeRanges(this._objectType);
-        const logicalRangeNames = logicalRanges.reduce<string[]>((results, range) => {
-            if (
-                results.find(
-                    left => (left || "").toLowerCase().trim() === (range.description || "").toLocaleLowerCase().trim()
-                )
-            ) {
-                return results;
-            }
-            results.push(range.description);
-            return results;
-        }, []);
+        const { consumptionNodes, rangesNodes } = getNodesOfRanges(logicalRanges);
 
-        const children = logicalRangeNames.map(name => {
-            const compareName = (name || "").toLowerCase().trim();
-            const ranges = logicalRanges.filter(
-                range => (range.description || "").toLowerCase().trim() === compareName
-            );
-            return ranges.length === 1
-                ? new LogicalObjectTypeRangeConsumptionNode(this, this._objectType, ranges[0], true)
-                : new LogicalObjectTypeRangesNode(this, this._objectType, name, ranges);
+        const children: Node[] = [];
+        consumptionNodes.map((consumptionNode: consumptionNodeProperty) => {
+            children.push(new LogicalObjectTypeRangeConsumptionNode(this, this._objectType, consumptionNode.range, consumptionNode.includeNames));
         });
-
+        rangesNodes.map((rangesNode: rangesNodeProperty) => {
+            children.push(new LogicalObjectTypeRangesNode(this, this._objectType, rangesNode.name, rangesNode.ranges));
+        });
         return children;
     }
 
