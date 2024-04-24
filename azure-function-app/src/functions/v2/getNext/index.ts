@@ -11,7 +11,7 @@ const getRealRanges = (type: string, ranges: Range[]) => {
     }
 
     const parts = type.split("_");
-    if (parts[0].toLowerCase() === "tableextension") {
+    if (["tableextension", "enumextension"].includes(parts[0].toLowerCase())) {
         return ranges;
     }
 
