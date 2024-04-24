@@ -208,6 +208,8 @@ export class ObjIdConfig {
      * @returns Ranges explicitly defined for specified object type
      */
     getObjectTypeRanges(objectType: string): NinjaALRange[] {
+        if (objectType.includes("_"))
+            objectType = objectType.split("_")[0];
         return this.objectRanges[objectType] || this.idRanges;
     }
 
