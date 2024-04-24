@@ -93,4 +93,8 @@ export class Config extends DisposableHolder {
     public get requestPerRange(): boolean {
         return this.getWithDefault<boolean>("requestPerRange", false);
     }
+
+    public get fieldAndValueIdsStayInsideExtensionRange(): boolean {
+        return this.getWithDefault<boolean>("fieldAndValueIdsStayInsideExtensionRange", false);
+    }
 }
