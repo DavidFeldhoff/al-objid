@@ -29,10 +29,17 @@ export class AssignmentExplorerRootNode extends RootNode implements AppAwareNode
         super(view);
 
         this._app = app;
-        this._label = app.name || app.manifest.name;
-        this._description = app.manifest.version;
-        this._tooltip = `${app.manifest.name} v${app.manifest.version}`;
-        this._uriAuthority = app.hash;
+        if (app.config.appPoolId) {
+            this._label = app.config.appPoolId;
+            this._description = "";
+            this._tooltip = app.config.appPoolId;
+            this._uriAuthority = app.config.appPoolId;
+        } else {
+            this._label = app.name || app.manifest.name;
+            this._description = app.manifest.version;
+            this._tooltip = `${app.manifest.name} v${app.manifest.version}`;
+            this._uriAuthority = app.hash;
+        }
         this._contextValues.push(ContextValues.Sync);
 
         this._hasLogical = this._app.config.idRanges.length > 0;

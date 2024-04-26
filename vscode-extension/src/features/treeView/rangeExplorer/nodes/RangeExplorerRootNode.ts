@@ -11,6 +11,7 @@ import { LogicalRangesGroupNode } from "./LogicalRangesGroupNode";
 import { ObjectRangesGroupNode } from "./ObjectRangesGroupNode";
 import { PhysicalRangeNode } from "./PhysicalRangeNode";
 import { PhysicalRangesGroupNode } from "./PhysicalRangesGroupNode";
+import { LogicalObjectTypeNode } from "./LogicalObjectTypeNode";
 
 /**
  * Represents a root node for range explorer.
@@ -29,10 +30,17 @@ export class RangeExplorerRootNode extends RootNode implements AppAwareNode, App
         super(view);
 
         this._app = app;
-        this._label = app.name || app.manifest.name;
-        this._description = app.manifest.version;
-        this._tooltip = `${app.manifest.name} v${app.manifest.version}`;
-        this._uriAuthority = app.hash;
+        if (app.config.appPoolId) {
+            this._label = app.config.appPoolId;
+            this._description = "";
+            this._tooltip = app.config.appPoolId;
+            this._uriAuthority = app.config.appPoolId;
+        } else {
+            this._label = app.name || app.manifest.name;
+            this._description = app.manifest.version;
+            this._tooltip = `${app.manifest.name} v${app.manifest.version}`;
+            this._uriAuthority = app.hash;
+        }
         this._contextValues.push(ContextValues.Sync);
 
         this._hasLogical = this._app.config.idRanges.length > 0;
@@ -51,6 +59,11 @@ export class RangeExplorerRootNode extends RootNode implements AppAwareNode, App
 
     protected override getChildren(): Node[] {
         let children: Node[] = [];
+
+        // Test if it works to only show a a few nodes and not all (physical, logical, object)
+        if (this.app.config.appPoolId && this._hasObject) {
+            return this.app.config.objectTypesSpecified.map(objectType => new LogicalObjectTypeNode(this, objectType));
+        }
 
         if (!this._hasLogical && !this._hasObject) {
             children = this._app.manifest.idRanges.map(range => new PhysicalRangeNode(this, range));
