@@ -8,7 +8,7 @@ enum FeatureFlags {
 }
 
 export const featureFlags: { readonly [key in FeatureFlags]: boolean } = {
-    managedPools: false,
+    managedPools: true,
 };
 
 export function setFlags() {
