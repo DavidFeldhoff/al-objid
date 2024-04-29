@@ -27,9 +27,7 @@
 	],
 	"settings": {
 		"files.exclude": {
-			"**/.git": true,
-			"**/dist": true,
-			"**/node_modules": true
+			"**/.git": true
 		},
 		"cSpell.words": [
 			"alext",
