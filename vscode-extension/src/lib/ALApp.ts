@@ -12,6 +12,7 @@ import { decrypt, encrypt } from "./Encryption";
 import { BackEndAppInfo } from "./backend/BackEndAppInfo";
 import { Telemetry, TelemetryEventType } from "./Telemetry";
 import { AssigmentMonitor } from "../features/AssignmentMonitor";
+import { WorkspaceManager } from "../features/WorkspaceManager";
 
 export class ALApp implements Disposable, BackEndAppInfo {
     private readonly _uri: Uri;
@@ -159,6 +160,15 @@ export class ALApp implements Disposable, BackEndAppInfo {
      */
     public get hash() {
         return this._hash || (this._hash = getSha256(this._manifest.id));
+    }
+
+    /**
+     * Returns app pool ID that this app belongs to. If the hash does not belong
+     * to a pool, then the same as `hash` is returned.
+     * @returns Pool ID of the pool, if the specified app belongs to a pool; otherwise the app hash is returned
+     */
+    public get appId() {
+        return WorkspaceManager.instance.getPoolIdFromAppIdIfAvailable(this.hash);
     }
 
     /**

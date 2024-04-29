@@ -93,9 +93,7 @@ export class Backend {
     ): Promise<NextObjectIdInfo | undefined> {
         // Intentionally checking the hash property bag, instead of calling isKnownManagedApp
         if (!this._knownManagedApps[app.hash] && commit) {
-            if (commit) {
-                this.rememberManagedApp(app.hash);
-            }
+            this.rememberManagedApp(app.hash);
         }
 
         const additionalOptions = {} as NextObjectIdInfo;

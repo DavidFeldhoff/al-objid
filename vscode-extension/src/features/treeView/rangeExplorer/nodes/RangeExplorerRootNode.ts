@@ -43,7 +43,8 @@ export class RangeExplorerRootNode extends RootNode implements AppAwareNode, App
             this._contextValues.push(ContextValues.CopyRanges);
         }
 
-        this._subscription = ConsumptionCache.instance.onConsumptionUpdate(app.hash, () => {
+        // Consumptions are done based on pool or app hash, so appId (hash or pool hash) is the right choice here
+        this._subscription = ConsumptionCache.instance.onConsumptionUpdate(app.appId, () => {
             this._view.update(this);
         });
     }
@@ -69,10 +70,6 @@ export class RangeExplorerRootNode extends RootNode implements AppAwareNode, App
 
     public get app() {
         return this._app;
-    }
-
-    public get appId() {
-        return this.app.hash;
     }
 
     public dispose(): void {

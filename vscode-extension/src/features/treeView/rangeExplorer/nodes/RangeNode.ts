@@ -35,7 +35,8 @@ export abstract class RangeNode<T extends ALRange> extends AppAwareDescendantNod
         this._label = `${range.from}..${range.to}`;
         this._tooltip = `From ${range.from} to ${range.to}`;
         this._uriPathPart = `${range.from}-${range.to}`;
-        this._consumption = ConsumptionCache.instance.getConsumption(this.app.hash) || {};
+        // Consumptions are done based on pool or app hash, so appId (hash or pool hash) is the right choice here
+        this._consumption = ConsumptionCache.instance.getConsumption(this.app.appId) || {};
         this._childNodes = this.calculateChildren();
     }
 
