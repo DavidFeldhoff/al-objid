@@ -49,8 +49,8 @@ const getNext = new ALNinjaRequestHandler<GetNextRequest, GetNextResponse>(async
     const appInfo: AppInfo = request.bindings.app || {} as AppInfo;
     const { appId, type, perRange, require } = request.body;
     const ids = appInfo[type] || [];
-    const ranges = request.method === "POST" && perRange && require ? limitRanges(request.body.ranges, require) : request.body.ranges;
-    const realRanges = getRealRanges(type, ranges);
+    let ranges = getRealRanges(type, request.body.ranges);
+    const realRanges = request.method === "POST" && perRange && require ? limitRanges(ranges, require) : ranges;
 
     const result = {
         id: perRange ? findAvailablePerRange(realRanges, ids) : findFirstAvailableId(realRanges, ids),

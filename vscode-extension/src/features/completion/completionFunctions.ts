@@ -73,7 +73,6 @@ export async function commitAssignment(
     completionObjectId: NextObjectIdInfo,
     range: NinjaALRange | undefined
 ) {
-    //TODO Assigning from public range (1..50000) for enum values results in "No more objects..." error
     output.log(`Committing object ID auto-complete for ${type} ${completionObjectId.id}`, LogLevel.Info);
     const realId = await Backend.getNextNo(app, type, app.manifest.idRanges, true, completionObjectId.id as number);
     const changed = realId && !isIdEqual(realId.id, completionObjectId.id as number);

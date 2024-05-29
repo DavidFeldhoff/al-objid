@@ -64,3 +64,29 @@ Content-Type: application/json
     "perRange": true,
     "require": 60000
 }
+
+### Assign a next number from 1 to 49999 of an enum
+
+post http://localhost:7071/api/v2/getNext
+Content-Type: application/json
+
+{
+    "appId": "test_ninja",
+    "type": "enum_50000",
+    "ranges": [
+        {
+            "from": 50000,
+            "to": 50150
+        },
+        {
+            "from": 60000,
+            "to": 60009
+        },
+        {
+            "from": 90000,
+            "to": 90099
+        }
+    ],
+    "perRange": true,
+    "require": 1
+}
