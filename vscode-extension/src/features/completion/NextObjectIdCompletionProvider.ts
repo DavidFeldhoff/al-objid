@@ -214,11 +214,13 @@ export class NextObjectIdCompletionProvider {
             for (let i = 0; i < objectId.id.length; i++) {
                 const id = objectId.id[i];
                 const range = getRangeForId(id as number, app.config.getObjectTypeRanges(type));
-                if (range && range.description) {
-                    if (logicalNames.includes(range.description)) {
+                if (range) {
+                    let description = "";
+                    if (range.description) { description = range.description }
+                    if (logicalNames.includes(description)) {
                         continue;
                     }
-                    logicalNames.push(range.description);
+                    logicalNames.push(description);
                 }
                 const objectIdCopy = { ...objectId, id };
                 const deeperContext = {
