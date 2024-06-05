@@ -58,7 +58,7 @@ export class ObjIdConfig {
     private read(): ObjIdConfigJson {
         try {
             const content = fs.readFileSync(this._uri.fsPath).toString() || "{}";
-            return parse(content) as ObjIdConfigJson;
+            return parse(content) as ObjIdConfigJson; //TODO: ObjIdConfigJson requires NinjaALRange.Description
         } catch (e: any) {
             if (e.code !== "ENOENT") {
                 output.log(`Cannot read file ${this._uri.fsPath}: ${e}`, LogLevel.Info);
