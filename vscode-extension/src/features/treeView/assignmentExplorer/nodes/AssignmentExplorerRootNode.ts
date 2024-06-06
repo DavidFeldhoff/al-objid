@@ -17,20 +17,22 @@ export class AssignmentExplorerRootNode extends RootNode implements AppAwareNode
     protected readonly _app: ALApp;
     private readonly _hasLogical: boolean;
     private readonly _hasObject: boolean;
-    private readonly _subscription: Disposable;
+    private readonly _subscriptions: Disposable[] = [];
     protected override readonly _uriAuthority: string;
     protected override readonly _label: string;
     protected override readonly _description: string;
     protected override readonly _tooltip: string;
     private _assigned: AssignedALObject[] = [];
     private _unassigned: ALObject[] = [];
+    private _assignedPerApp: Record<string, AssignedALObject[]> = {};
+    private _unassignedPerApp: Record<string, ALObject[]> = {};
 
     constructor(app: ALApp, view: ViewController) {
         super(view);
 
         this._app = app;
         if (app.config.appPoolId) {
-            this._label = app.config.appPoolId;
+            this._label = `App Pool ${app.config.appPoolId.substring(0, 8)}`;
             this._description = "";
             this._tooltip = app.config.appPoolId;
             this._uriAuthority = app.config.appPoolId;
@@ -50,21 +52,35 @@ export class AssignmentExplorerRootNode extends RootNode implements AppAwareNode
             this._contextValues.push(ContextValues.CopyRanges);
         }
 
-        this._subscription = app.assignmentMonitor.onAssignmentChanged(({ assigned, unassigned }) => {
-            this._assigned = assigned;
-            this._unassigned = unassigned;
-            this._view.update(this);
-        });
+        this.attachPoolApp(app);
+        this.populateAssignments(app.assignmentMonitor.assigned, app.assignmentMonitor.unassigned, app.hash);
+    }
 
-        this._assigned = app.assignmentMonitor.assigned;
-        this._unassigned = app.assignmentMonitor.unassigned;
+    private populateAssignments(assigned: AssignedALObject[], unassigned: ALObject[], hash: string) {
+        this._assignedPerApp[hash] = assigned;
+        this._unassignedPerApp[hash] = unassigned;
+        this.mergeAssignments();
+    }
+
+    private mergeAssignments() {
+        this._assigned = [];
+        this._unassigned = [];
+        for (let hash in this._assignedPerApp) {
+            this._assigned.push(...this._assignedPerApp[hash]);
+        }
+        for (let hash in this._unassignedPerApp) {
+            this._unassigned.push(...this._unassignedPerApp[hash]);
+        }
+        // Filter to contain unique assignments
     }
 
     protected override getChildren(): Node[] {
         let children: Node[] = [];
 
         children.push(new CollisionsGroupNode(this, this._unassigned));
-        children.push(new LostGroupNode(this, this._assigned));
+        if (!this._app.config.appPoolId) {
+            children.push(new LostGroupNode(this, this._assigned));
+        }
         return children;
     }
 
@@ -73,10 +89,17 @@ export class AssignmentExplorerRootNode extends RootNode implements AppAwareNode
     }
 
     public get appId() {
-        return this.app.hash;
+        return this.app.appId;
+    }
+
+    public attachPoolApp(app: ALApp) {
+        this._subscriptions.push(app.assignmentMonitor.onAssignmentChanged(({ assigned, unassigned }) => {
+            this.populateAssignments(assigned, unassigned, app.hash);
+            this._view.update(this);
+        }));
     }
 
     public dispose(): void {
-        this._subscription.dispose();
+        this._subscriptions.forEach(subscription => subscription.dispose());
     }
 }

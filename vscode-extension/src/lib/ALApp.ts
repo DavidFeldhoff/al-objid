@@ -52,7 +52,7 @@ export class ALApp implements Disposable, BackEndAppInfo {
             }
         );
 
-        this._assignmentMonitor = new AssigmentMonitor(uri, this.hash);
+        this._assignmentMonitor = new AssigmentMonitor(uri, this._config.appPoolId || this.hash);
     }
 
     private createObjectIdConfig(): ObjIdConfig {

@@ -29,6 +29,11 @@ export class LostGroupNode extends AppAwareDescendantNode {
         super(parent);
         this._assigned = unassigned;
 
+        if (this.parent.app.config.appPoolId) {
+            this._description = "Possibly defined in another app from this pool";
+            this._label = "Unknown";
+        }
+
         if (this._assigned.length === 0) {
             this._collapsibleState = TreeItemCollapsibleState.None;
             this._iconPath = NinjaIcon["check"];
@@ -37,7 +42,7 @@ export class LostGroupNode extends AppAwareDescendantNode {
             this._tooltip = "All object IDs assigned to this app using AL Object ID Ninja are currently in use";
         } else {
             this._tooltip = new MarkdownString(
-                "Object IDs that were assigned by AL Object ID Ninja but are no longer used by any object.\n\nMost likely these objects have been assigned by a developer in the past, but the object file for which they were used has been deleted, or another object ID has been assigned.\n\n**Be careful!** These object IDs may also represent object IDs assigned by other developers in their local branches, that have not yet been pushed and merged to the mainline. Before reclaiming these object IDs, make sure they are not in use by another branch."
+                `Object IDs that were assigned by AL Object ID Ninja but are no longer used by any object.\n\nMost likely these objects have been assigned by a developer in the past, but the object file for which they were used has been deleted, or another object ID has been assigned.\n\n**Be careful!** These object IDs may also represent object IDs assigned by other developers in their local branches, that have not yet been pushed and merged to the mainline. Before reclaiming these object IDs, make sure they are not in use by another branch.${parent.app.config.appPoolId ? "\n\n**Be extra careful:** Since you are using app pools feature, if any objects IDs are assigned by an app that belongs to this pool, but is not currently loaded in your workspace, such object IDs are also going to be shown here." : ""}`
             );
         }
     }

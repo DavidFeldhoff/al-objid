@@ -23,7 +23,14 @@ export class AssignmentExplorerView extends NinjaTreeView {
         return new AssignmentExplorerRootNode(app, view);
     }
 
-    private getRootNode(app: ALApp): AssignmentExplorerRootNode {
+    private getRootNode(app: ALApp): AssignmentExplorerRootNode | undefined {
+        const existingNode = this._rootNodes.find(node => node.app.appId === app.appId);
+        if (existingNode) {
+            // We are inside an app pool, obviously
+            existingNode.attachPoolApp(app)
+            return;
+        }
+
         const rootNode = this.createRootNode(app, this);
 
         this._appRoots.set(app, rootNode);
@@ -53,13 +60,9 @@ export class AssignmentExplorerView extends NinjaTreeView {
             return [new TextNode("No AL workspaces are open.", "There is nothing to show here.")];
         }
 
-        // A pool can also have consumptions. E.g. based on logical or object ranges.
-        // apps = apps.filter(app => !app.config.appPoolId);
-        // if (apps.length === 0) {
-        //     return [new TextNode("Only app pools available.", "There is nothing to show here.")];
-        // }
-
-        return apps.map(app => this.getRootNode(app));
+        const nodes = apps.map(app => this.getRootNode(app));
+        const filteredNodes = nodes.filter(node => node !== undefined) as AssignmentExplorerRootNode[];
+        return filteredNodes;
     }
 
     protected override refreshAfterWorkspaceChange(added: ALApp[], removed: ALApp[]) {
