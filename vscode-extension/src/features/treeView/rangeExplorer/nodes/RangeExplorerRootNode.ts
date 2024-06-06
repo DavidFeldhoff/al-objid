@@ -31,7 +31,7 @@ export class RangeExplorerRootNode extends RootNode implements AppAwareNode, App
 
         this._app = app;
         if (app.config.appPoolId) {
-            this._label = app.config.appPoolId;
+            this._label = `App Pool ${app.config.appPoolId.substring(0, 8)}`;
             this._description = "";
             this._tooltip = app.config.appPoolId;
             this._uriAuthority = app.config.appPoolId;
@@ -51,6 +51,7 @@ export class RangeExplorerRootNode extends RootNode implements AppAwareNode, App
             this._contextValues.push(ContextValues.CopyRanges);
         }
 
+        //TODO: Build something like attachPoolApp as well (see AssignmentExplorerRootNode.ts)
         // Consumptions are done based on pool or app hash, so appId (hash or pool hash) is the right choice here
         this._subscription = ConsumptionCache.instance.onConsumptionUpdate(app.appId, () => {
             this._view.update(this);

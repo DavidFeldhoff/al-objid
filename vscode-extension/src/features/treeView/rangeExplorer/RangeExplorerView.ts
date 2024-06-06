@@ -34,7 +34,11 @@ export class RangeExplorerView extends NinjaTreeView {
         return new RangeExplorerRootNode(app, view);
     }
 
-    private getRootNode(app: ALApp): RangeExplorerRootNode {
+    private getRootNode(app: ALApp): RangeExplorerRootNode | undefined {
+        if (this._rootNodes.some(node => node.uri.authority === app.appId)) {
+            return;
+        }
+
         const rootNode = this.createRootNode(app, this);
 
         this._appRoots.set(app, rootNode);
@@ -64,13 +68,9 @@ export class RangeExplorerView extends NinjaTreeView {
             return [new TextNode("No AL workspaces are open.", "There is nothing to show here.")];
         }
 
-        // A pool can also have consumptions. E.g. based on logical or object ranges.
-        // apps = apps.filter(app => !app.config.appPoolId);
-        // if (apps.length === 0) {
-        //     return [new TextNode("Only app pools available.", "There is nothing to show here.")];
-        // }
-
-        return apps.map(app => this.getRootNode(app));
+        const nodes = apps.map(app => this.getRootNode(app));
+        const filteredNodes = nodes.filter(node => node !== undefined) as RangeExplorerRootNode[];
+        return filteredNodes;
     }
 
     protected override refreshAfterWorkspaceChange(added: ALApp[], removed: ALApp[]) {
