@@ -71,7 +71,7 @@ function getRepoName(repo: Uri) {
 async function updateObjectDefinitions(uri: Uri, consumption: ConsumptionInfo) {
     const uris = await getWorkspaceFolderFiles(uri);
     const objects = await getObjectDefinitions(uris);
-    updateActualConsumption(objects, consumption);
+    await updateActualConsumption(objects, consumption);
 }
 
 async function syncFoldersForConfiguration(config: AutoSyncConfiguration, consumptions: PropertyBag<ConsumptionInfo>) {

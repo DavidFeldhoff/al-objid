@@ -16,6 +16,7 @@ import { NinjaCommand } from "../../commands/commands";
 import { showDocument } from "../../lib/functions/showDocument";
 import { InteractiveCompletionItem } from "./InteractiveCompletionItem";
 import { continueWithAssignment, stopAsking, stopSyncing } from "./completionFunctions";
+import { getExtendedId } from "../../lib/functions/getExtendedId";
 
 type SymbolInfo = {
     type: string;
@@ -122,6 +123,12 @@ async function getTypeAtPositionRaw(
             if (isField === ";") {
                 context.injectSemicolon = true;
             }
+            if (matches[0].name.toLowerCase().startsWith("tableextension")) {
+                const extendedId = await getExtendedId(document.uri, document.getText(), document.eol)
+                if (extendedId) {
+                    return `${objectParts[0]}_${extendedId}`;
+                }
+            }
             return `${objectParts[0]}_${objectParts[1]}`;
         }
         return null;
@@ -135,6 +142,12 @@ async function getTypeAtPositionRaw(
             if (objectParts[1] !== "0") {
                 if (isValue === ";") {
                     context.injectSemicolon = true;
+                }
+                if (matches[0].name.toLowerCase().startsWith("enumextension")) {
+                    const extendedId = await getExtendedId(document.uri, document.getText(), document.eol)
+                    if (extendedId) {
+                        return `${objectParts[0]}_${extendedId}`;
+                    }
                 }
                 return `${objectParts[0]}_${objectParts[1]}`;
             }

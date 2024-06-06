@@ -38,7 +38,7 @@ export const syncObjectIds = async (options?: SyncOptions) => {
 
     const uris = await getWorkspaceFolderFiles(app.uri);
     const objects = await getObjectDefinitions(uris);
-    const consumption: ConsumptionInfo = getActualConsumption(objects);
+    const consumption: ConsumptionInfo = await getActualConsumption(objects);
 
     Telemetry.instance.logAppCommand(app, NinjaCommand.SyncObjectIds);
     if (await Backend.syncIds(app, consumption, !!options?.merge)) {
