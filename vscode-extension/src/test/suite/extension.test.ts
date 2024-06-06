@@ -4,7 +4,7 @@ import * as assert from 'assert';
 // as well as import your extension to test it
 import * as vscode from 'vscode';
 import { NinjaALRange } from '../../lib/types/NinjaALRange';
-import { consumptionNodeProperty, getNodesOfRanges, rangesNodeProperty } from '../../lib/functions/getNodesOfRanges';
+import { ConsumptionNodeProperty, getNodesOfRanges, RangesNodeProperty } from '../../lib/functions/getNodesOfRanges';
 // import * as myExtension from '../../extension';
 
 suite('RangeExplorer TestSuite', () => {
@@ -153,7 +153,7 @@ suite('RangeExplorer TestSuite', () => {
 	});
 });
 
-function verifySingleEntry(consumptionNode: consumptionNodeProperty, includeName: boolean, from: number, to: number, description?: string) {
+function verifySingleEntry(consumptionNode: ConsumptionNodeProperty, includeName: boolean, from: number, to: number, description?: string) {
 	assert.strictEqual(consumptionNode.includeNames, includeName)
 	assert.strictEqual(consumptionNode.range.from, from)
 	assert.strictEqual(consumptionNode.range.to, to)
@@ -162,7 +162,7 @@ function verifySingleEntry(consumptionNode: consumptionNodeProperty, includeName
 		assert.strictEqual(consumptionNode.range.description, description)
 	}
 }
-function verifyMultiEntry(rangesNode: rangesNodeProperty, expectedName: string, expectedRanges: { from: number, to: number }[]) {
+function verifyMultiEntry(rangesNode: RangesNodeProperty, expectedName: string, expectedRanges: { from: number, to: number }[]) {
 	assert.strictEqual(rangesNode.name, expectedName)
 	assert.strictEqual(rangesNode.ranges.length, expectedRanges.length)
 	for (let i = 0; i < expectedRanges.length; i++) {

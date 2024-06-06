@@ -1,8 +1,8 @@
 import { NinjaALRange } from "../types/NinjaALRange";
 
-export function getNodesOfRanges(logicalRanges: NinjaALRange[]): { consumptionNodes: consumptionNodeProperty[]; rangesNodes: rangesNodeProperty[] } {
-    const consumptionNodes: consumptionNodeProperty[] = [];
-    const rangesNodes: rangesNodeProperty[] = [];
+export function getNodesOfRanges(logicalRanges: NinjaALRange[]): { consumptionNodes: ConsumptionNodeProperty[]; rangesNodes: RangesNodeProperty[] } {
+    const consumptionNodes: ConsumptionNodeProperty[] = [];
+    const rangesNodes: RangesNodeProperty[] = [];
     const logicalRangeNames = logicalRanges.reduce<string[]>((results, range) => {
         if ((range.description || "").trim() === "") {
             return results;
@@ -34,5 +34,6 @@ export function getNodesOfRanges(logicalRanges: NinjaALRange[]): { consumptionNo
     });
     return { consumptionNodes, rangesNodes };
 }
-export interface consumptionNodeProperty { range: NinjaALRange; includeNames: boolean; }
-export interface rangesNodeProperty { name: string; ranges: NinjaALRange[]; }
+
+export interface ConsumptionNodeProperty { range: NinjaALRange; includeNames: boolean; }
+export interface RangesNodeProperty { name: string; ranges: NinjaALRange[]; }

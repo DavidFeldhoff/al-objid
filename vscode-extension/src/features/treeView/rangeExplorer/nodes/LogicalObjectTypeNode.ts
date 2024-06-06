@@ -13,7 +13,7 @@ import { Node } from "../../Node";
 import { LogicalObjectTypeRangeConsumptionNode } from "./LogicalObjectTypeRangeConsumptionNode";
 import { LogicalObjectTypeRangesNode } from "./LogicalObjectTypeRangesNode";
 import { ObjectTypeNode } from "./ObjectTypeNode";
-import { consumptionNodeProperty, getNodesOfRanges, rangesNodeProperty } from "../../../../lib/functions/getNodesOfRanges";
+import { ConsumptionNodeProperty, getNodesOfRanges, RangesNodeProperty } from "../../../../lib/functions/getNodesOfRanges";
 
 /**
  * Represents an individual logical object type specified under `objectTypes` in `.objidconfig`.
@@ -42,10 +42,10 @@ export class LogicalObjectTypeNode extends ObjectTypeNode implements GoToDefinit
         const { consumptionNodes, rangesNodes } = getNodesOfRanges(logicalRanges);
 
         const children: Node[] = [];
-        consumptionNodes.map((consumptionNode: consumptionNodeProperty) => {
+        consumptionNodes.map((consumptionNode: ConsumptionNodeProperty) => {
             children.push(new LogicalObjectTypeRangeConsumptionNode(this, this._objectType, consumptionNode.range, consumptionNode.includeNames));
         });
-        rangesNodes.map((rangesNode: rangesNodeProperty) => {
+        rangesNodes.map((rangesNode: RangesNodeProperty) => {
             children.push(new LogicalObjectTypeRangesNode(this, this._objectType, rangesNode.name, rangesNode.ranges));
         });
         return children;
