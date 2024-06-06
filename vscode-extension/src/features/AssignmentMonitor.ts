@@ -151,7 +151,7 @@ export class AssigmentMonitor implements Disposable {
             object =>
                 !assignedObjects.some(
                     assignedObject => object.id === assignedObject.id && object.type === assignedObject.type
-                )
+                ) && typeof object.id === "number"
         );
         this._unassigned = unassigned;
 
