@@ -11,6 +11,7 @@ import { ALObjectType } from "./types/ALObjectType";
 import { BCLicense } from "./BCLicense";
 import { ObjIdConfigLinter } from "../features/linters/ObjIdConfigLinter";
 import { Telemetry, TelemetryEventType } from "./Telemetry";
+import { Config } from "./Config";
 
 interface ObjIdConfigJson {
     authKey: string;
@@ -208,6 +209,8 @@ export class ObjIdConfig {
      * @returns Ranges explicitly defined for specified object type
      */
     getObjectTypeRanges(objectType: string): NinjaALRange[] {
+        if (objectType.includes("_") && Config.instance.fieldAndValueIdsStayInsideObjectRange)
+            objectType = objectType.split("_")[0];
         return this.objectRanges[objectType] || this.idRanges;
     }
 

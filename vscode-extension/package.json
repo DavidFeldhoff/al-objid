@@ -222,6 +222,11 @@
                     "type": "boolean",
                     "default": false,
                     "description": "Requires that next IDs are retrieved per range. For example, if an app declares multiple ranges, Ninja will suggest the next ID from each range where IDs are available. User can then choose the range from which the ID will be assigned."
+                },
+                "objectIdNinja.fieldAndValueIdsStayInsideObjectRange": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Specifies that tableextension field ids and enumextension value ids stay inside the object range specified for tableextensions or enumextensions."
                 }
             }
         },
