@@ -6,4 +6,5 @@ export interface NextObjectIdInfo {
     hasConsumption: boolean;
     perRange?: boolean;
     require?: number;
+    redirectExtensions?: true;
 }

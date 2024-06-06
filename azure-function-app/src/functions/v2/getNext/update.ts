@@ -1,6 +1,5 @@
 import { Blob } from "@vjeko.com/azure-func";
 import { findFirstAvailableId } from "../../../common/util";
-import { ALObjectType } from "../ALObjectType";
 import { ALNinjaRequestContext, AppInfo, Range } from "../TypesV2";
 import { ConsumptionUpdateContext } from "./types";
 
@@ -9,7 +8,7 @@ interface UpdateResult {
     success: boolean;
 }
 
-export async function updateConsumption(appId: string, request: ALNinjaRequestContext, type: ALObjectType, assignFromRanges: Range[], appRanges: Range[], context: ConsumptionUpdateContext): Promise<UpdateResult> {
+export async function updateConsumption(appId: string, request: ALNinjaRequestContext, type: string, storageId: string, assignFromRanges: Range[], appRanges: Range[], context: ConsumptionUpdateContext): Promise<UpdateResult> {
     let success = true;
 
     const blob = new Blob<AppInfo>(`${appId}.json`);
@@ -27,13 +26,13 @@ export async function updateConsumption(appId: string, request: ALNinjaRequestCo
         }
 
         app._ranges = appRanges;
-        const consumption = app[type];
+        const consumption = app[storageId];
 
         // No ids consumed yet, consume the first one and exit
         if (!consumption || !consumption.length) {
             context.updated = true;
-            app[type] = [context.id];
-            request.log(app, "getNext", { type, id: context.id });
+            app[storageId] = [context.id];
+            request.log(app, "getNext", { type: storageId, id: context.id });
             return { ...app };
         }
 
@@ -49,8 +48,8 @@ export async function updateConsumption(appId: string, request: ALNinjaRequestCo
         }
 
         context.updated = true;
-        app[type] = [...consumption, context.id].sort((left, right) => left - right);
-        request.log(app, "getNext", { type, id: context.id });
+        app[storageId] = [...consumption, context.id].sort((left, right) => left - right);
+        request.log(app, "getNext", { type, storageId, id: context.id });
         return { ...app };
     });
 

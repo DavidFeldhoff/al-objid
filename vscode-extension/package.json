@@ -227,6 +227,11 @@
                     "type": "boolean",
                     "default": false,
                     "description": "Specifies that tableextension field ids and enumextension value ids stay inside the object range specified for tableextensions or enumextensions."
+                },
+                "objectIdNinja.storeExtensionValuesOrIdsOnBaseObject": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Field IDs of tableextensions are stored per tableextension object. This is not correct as two tableextensions of the same base table could get offered the same field id. But changing it is a breaking change, which is why we ask you to opt-in to this new solution and then manually sync (update or replace) your ids afterwards, so that tableextension field ids are stored together with the field ids of the basetable in the basetable object. Same applies to enumextension values."
                 }
             }
         },

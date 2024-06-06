@@ -5,14 +5,22 @@ import { AppInfo, Range } from "../TypesV2";
 import { GetNextRequest, GetNextResponse } from "./types";
 import { updateConsumption } from "./update";
 
-const getRealRanges = (type: string, ranges: Range[]) => {
+interface ObjectStorageInfo {
+    storageId: string;
+    ranges: Range[];
+}
+
+const getObjectStorageInfo = (type: string, ranges: Range[], redirectExtensions?: true): ObjectStorageInfo => {
+    let storageId = type;
+
     if (!type.includes("_")) {
-        return ranges;
+        return { storageId, ranges };
     }
 
     const parts = type.split("_");
     if (["tableextension", "enumextension"].includes(parts[0].toLowerCase())) {
-        return ranges;
+        storageId = redirectExtensions ? storageId.replace("extension", "") : storageId;
+        return { storageId, ranges };
     }
 
     const id = parseInt(parts[1]);
@@ -28,7 +36,7 @@ const getRealRanges = (type: string, ranges: Range[]) => {
         ranges = [{ from: 1, to: 49999 }, ...ranges];
     }
 
-    return ranges;
+    return { storageId, ranges };
 }
 
 const limitRanges = (ranges: Range[], require?: number) => {
@@ -47,9 +55,9 @@ const limitRanges = (ranges: Range[], require?: number) => {
 
 const getNext = new ALNinjaRequestHandler<GetNextRequest, GetNextResponse>(async (request) => {
     const appInfo: AppInfo = request.bindings.app || {} as AppInfo;
-    const { appId, type, perRange, require } = request.body;
-    const ids = appInfo[type] || [];
-    let ranges = getRealRanges(type, request.body.ranges);
+    const { appId, type, perRange, require, redirectExtensions } = request.body;
+    let { storageId, ranges } = getObjectStorageInfo(type, request.body.ranges, redirectExtensions);
+    const ids = appInfo[storageId] || [];
     const realRanges = request.method === "POST" && perRange && require ? limitRanges(ranges, require) : ranges;
 
     const result = {
@@ -69,7 +77,7 @@ const getNext = new ALNinjaRequestHandler<GetNextRequest, GetNextResponse>(async
     };
 
     if (request.method === "POST" && (Array.isArray(result.id) ? result.id.length : result.id)) {
-        const { app, success } = await updateConsumption(appId, request, type, realRanges, request.body.ranges, updateContext);
+        const { app, success } = await updateConsumption(appId, request, type, storageId, realRanges, request.body.ranges, updateContext);
         if (!success) {
             throw new ErrorResponse("Too many attempts at updating BLOB", 409);
         }

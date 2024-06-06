@@ -99,6 +99,9 @@ export class Backend {
         }
 
         const additionalOptions = {} as NextObjectIdInfo;
+        if (Config.instance.storeExtensionValuesOrIdsOnBaseObject) {
+            additionalOptions.redirectExtensions = true;
+        }
         const idRanges = app.config.getObjectTypeRanges(type);
         if (!ranges.mandatory && (Config.instance.requestPerRange || idRanges.length > 0)) {
             additionalOptions.perRange = true;

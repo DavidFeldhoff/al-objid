@@ -246,7 +246,7 @@ describe("Testing function api/v2/getNext", () => {
 
         expect(storage.log().length).toBe(1);
         expect(storage.log()[0].eventType).toBe("getNext");
-        expect(storage.log()[0].data).toEqual({ type: "codeunit", id: 50003 });
+        expect(storage.log()[0].data).toEqual({ type: "codeunit", storageId: "codeunit", id: 50003 });
         expect(storage.log()[0].user).toBe("fake");
 
         expect(context.bindings.notify).toBeDefined();
@@ -292,7 +292,7 @@ describe("Testing function api/v2/getNext", () => {
 
         expect(storage.log().length).toBe(2);
         expect(storage.log()[1].eventType).toBe("getNext");
-        expect(storage.log()[1].data).toEqual({ type: "codeunit", id: 50003 });
+        expect(storage.log()[1].data).toEqual({ type: "codeunit", storageId: "codeunit", id: 50003 });
         expect(storage.log()[1].user).toBe("fake");
 
         expect(context.bindings.notify).toBeDefined();
@@ -336,22 +336,84 @@ describe("Testing function api/v2/getNext", () => {
         expect(storage.objectIds(type)).toEqual([50000, 50001, 50002, 50003, 50004]);
     });
 
-    it("Succeeds committing next field ID to own enumextension with previous consumption", async () => {
-        const consumption = [1, 2, 4, 5, 6, 50000, 50001, 50002, 50004];
+    it("Succeeds committing next value ID to own enumextension with previous consumption, storage in enum extension", async () => {
         const storage = new StubStorage().app();
-        const type = storage.toALObjectType("enumextension_50000");
-        storage.setConsumption(type, consumption);
+        const type = storage.toALObjectType("enum_37");
+        const requestType = storage.toALObjectType("enumextension_50000");
+        storage.setConsumption(type, [1, 2, 4, 5, 50000, 50001, 50002, 50004]);
+        storage.setConsumption(requestType, [1, 2, 4, 5, 50000, 50001, 50002, 50004]);
         Mock.useStorage(storage.content);
-        const context = new Mock.Context(new Mock.Request("POST", { appId: storage.appId, ranges, type }));
+        const context = new Mock.Context(new Mock.Request("POST", { appId: storage.appId, ranges, type: requestType }));
         await getNext(context, context.req);
-        expect(context.res.body.id).toStrictEqual(3);
+        expect(context.res.body.id).toStrictEqual(50003);
         expect(context.res.body.available).toStrictEqual(true);
         expect(context.res.body.hasConsumption).toStrictEqual(true);
         expect(context.res.body.updated).toStrictEqual(true);
         expect(storage).toHaveChanged();
         expect(storage.ranges()).toHaveLength(1);
         expect(storage.ranges()).toEqual(ranges);
-        expect(storage.objectIds(type)).toEqual([1, 2, 3, 4, 5, 6, 50000, 50001, 50002, 50004]);
+        expect(storage.objectIds(type)).toEqual([1, 2, 4, 5, 50000, 50001, 50002, 50004]);
+        expect(storage.objectIds(requestType)).toEqual([1, 2, 4, 5, 50000, 50001, 50002, 50003, 50004]);
+    });
+
+    it("Succeeds committing next value ID to own enumextension with previous consumption, storage in extended base enum", async () => {
+        const storage = new StubStorage().app();
+        const type = storage.toALObjectType("enum_37");
+        const requestType = storage.toALObjectType("enumextension_37");
+        storage.setConsumption(type, [1, 2, 4, 5, 50000, 50001, 50002, 50004]);
+        storage.setConsumption(requestType, [1, 2, 4, 5, 50000, 50001, 50002, 50004]);
+        Mock.useStorage(storage.content);
+        const context = new Mock.Context(new Mock.Request("POST", { appId: storage.appId, ranges, type: requestType, redirectExtensions: true }));
+        await getNext(context, context.req);
+        expect(context.res.body.id).toStrictEqual(50003);
+        expect(context.res.body.available).toStrictEqual(true);
+        expect(context.res.body.hasConsumption).toStrictEqual(true);
+        expect(context.res.body.updated).toStrictEqual(true);
+        expect(storage).toHaveChanged();
+        expect(storage.ranges()).toHaveLength(1);
+        expect(storage.ranges()).toEqual(ranges);
+        expect(storage.objectIds(type)).toEqual([1, 2, 4, 5, 50000, 50001, 50002, 50003, 50004]);
+        expect(storage.objectIds(requestType)).toEqual([1, 2, 4, 5, 50000, 50001, 50002, 50004]);
+    });
+
+    it("Succeeds committing next value ID to own tableextension with previous consumption, storage in table extension", async () => {
+        const storage = new StubStorage().app();
+        const type = storage.toALObjectType("table_37");
+        const requestType = storage.toALObjectType("tableextension_50000");
+        storage.setConsumption(type, [1, 2, 4, 5, 50000, 50001, 50002, 50004]);
+        storage.setConsumption(requestType, [1, 2, 4, 5, 50000, 50001, 50002, 50004]);
+        Mock.useStorage(storage.content);
+        const context = new Mock.Context(new Mock.Request("POST", { appId: storage.appId, ranges, type: requestType }));
+        await getNext(context, context.req);
+        expect(context.res.body.id).toStrictEqual(50003);
+        expect(context.res.body.available).toStrictEqual(true);
+        expect(context.res.body.hasConsumption).toStrictEqual(true);
+        expect(context.res.body.updated).toStrictEqual(true);
+        expect(storage).toHaveChanged();
+        expect(storage.ranges()).toHaveLength(1);
+        expect(storage.ranges()).toEqual(ranges);
+        expect(storage.objectIds(type)).toEqual([1, 2, 4, 5, 50000, 50001, 50002, 50004]);
+        expect(storage.objectIds(requestType)).toEqual([1, 2, 4, 5, 50000, 50001, 50002, 50003, 50004]);
+    });
+
+    it("Succeeds committing next value ID to own tableextension with previous consumption, storage in extended base table", async () => {
+        const storage = new StubStorage().app();
+        const type = storage.toALObjectType("table_37");
+        const requestType = storage.toALObjectType("tableextension_37");
+        storage.setConsumption(type, [1, 2, 4, 5, 50000, 50001, 50002, 50004]);
+        storage.setConsumption(requestType, [1, 2, 4, 5, 50000, 50001, 50002, 50004]);
+        Mock.useStorage(storage.content);
+        const context = new Mock.Context(new Mock.Request("POST", { appId: storage.appId, ranges, type: requestType, redirectExtensions: true }));
+        await getNext(context, context.req);
+        expect(context.res.body.id).toStrictEqual(50003);
+        expect(context.res.body.available).toStrictEqual(true);
+        expect(context.res.body.hasConsumption).toStrictEqual(true);
+        expect(context.res.body.updated).toStrictEqual(true);
+        expect(storage).toHaveChanged();
+        expect(storage.ranges()).toHaveLength(1);
+        expect(storage.ranges()).toEqual(ranges);
+        expect(storage.objectIds(type)).toEqual([1, 2, 4, 5, 50000, 50001, 50002, 50003, 50004]);
+        expect(storage.objectIds(requestType)).toEqual([1, 2, 4, 5, 50000, 50001, 50002, 50004]);
     });
 
     it("Succeeds getting next ID from multiple ranges from a previously unknown app", async () => {

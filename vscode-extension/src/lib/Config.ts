@@ -97,4 +97,8 @@ export class Config extends DisposableHolder {
     public get fieldAndValueIdsStayInsideObjectRange(): boolean {
         return this.getWithDefault<boolean>("fieldAndValueIdsStayInsideObjectRange", false);
     }
+
+    public get storeExtensionValuesOrIdsOnBaseObject(): boolean {
+        return this.getWithDefault<boolean>("storeExtensionValuesOrIdsOnBaseObject", false);
+    }
 }
