@@ -1,39 +1,26 @@
 import { NinjaALRange } from "../types/NinjaALRange";
 
-export function getNodesOfRanges(logicalRanges: NinjaALRange[]): { consumptionNodes: ConsumptionNodeProperty[]; rangesNodes: RangesNodeProperty[] } {
-    const consumptionNodes: ConsumptionNodeProperty[] = [];
-    const rangesNodes: RangesNodeProperty[] = [];
+export function getNodesOfRanges(logicalRanges: NinjaALRange[], newConsumptionNode: (range: NinjaALRange, includeNames: boolean) => void, newRangesNode: (name: string, ranges: NinjaALRange[]) => void) {
+    const getDescriptionFromRange = (range: NinjaALRange) => range.description || "Unknown Range";
     const logicalRangeNames = logicalRanges.reduce<string[]>((results, range) => {
-        if ((range.description || "").trim() === "") {
-            return results;
-        }
         if (
             results.find(
-                left => left.toLowerCase().trim() === range.description.toLowerCase().trim()
+                left => left.toLowerCase().trim() === getDescriptionFromRange(range).toLowerCase().trim()
             )
         ) {
             return results;
         }
-        results.push(range.description);
+        results.push(getDescriptionFromRange(range));
         return results;
     }, []);
 
     logicalRangeNames.map(name => {
         const compareName = name.toLowerCase().trim();
         const ranges = logicalRanges.filter(
-            range => (range.description || "").toLowerCase().trim() === compareName
+            range => getDescriptionFromRange(range).toLowerCase().trim() === compareName
         );
         ranges.length === 1
-            ? consumptionNodes.push({ range: ranges[0], includeNames: true })
-            : rangesNodes.push({ name: name, ranges: ranges });
+            ? newConsumptionNode(ranges[0], true)
+            : newRangesNode(name, ranges);
     });
-
-    const rangesWithoutDescription = logicalRanges.filter(range => (range.description || "").trim() === "");
-    rangesWithoutDescription.map(range => {
-        consumptionNodes.push({ range: range, includeNames: false });
-    });
-    return { consumptionNodes, rangesNodes };
 }
-
-export interface ConsumptionNodeProperty { range: NinjaALRange; includeNames: boolean; }
-export interface RangesNodeProperty { name: string; ranges: NinjaALRange[]; }

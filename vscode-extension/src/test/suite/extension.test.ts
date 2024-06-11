@@ -4,7 +4,7 @@ import * as assert from 'assert';
 // as well as import your extension to test it
 import * as vscode from 'vscode';
 import { NinjaALRange } from '../../lib/types/NinjaALRange';
-import { ConsumptionNodeProperty, getNodesOfRanges, RangesNodeProperty } from '../../lib/functions/getNodesOfRanges';
+import { getNodesOfRanges } from '../../lib/functions/getNodesOfRanges';
 // import * as myExtension from '../../extension';
 
 suite('RangeExplorer TestSuite', () => {
@@ -17,7 +17,7 @@ suite('RangeExplorer TestSuite', () => {
 			to: 2,
 			description: "Sales"
 		})
-		let { consumptionNodes, rangesNodes } = getNodesOfRanges(ninjaALRanges)
+		const { consumptionNodes, rangesNodes } = callGetNodesOfRanges(ninjaALRanges);
 		assert.strictEqual(consumptionNodes.length, 1)
 		verifySingleEntry(consumptionNodes[0], true, 1, 2, "Sales");
 
@@ -30,7 +30,7 @@ suite('RangeExplorer TestSuite', () => {
 			to: 2,
 			description: ""
 		})
-		let { consumptionNodes, rangesNodes } = getNodesOfRanges(ninjaALRanges)
+		const { consumptionNodes, rangesNodes } = callGetNodesOfRanges(ninjaALRanges);
 		assert.strictEqual(consumptionNodes.length, 1)
 		verifySingleEntry(consumptionNodes[0], false, 1, 2);
 
@@ -50,7 +50,7 @@ suite('RangeExplorer TestSuite', () => {
 				description: "Sales"
 			}
 		)
-		let { consumptionNodes, rangesNodes } = getNodesOfRanges(ninjaALRanges)
+		const { consumptionNodes, rangesNodes } = callGetNodesOfRanges(ninjaALRanges);
 		assert.strictEqual(consumptionNodes.length, 0)
 
 		assert.strictEqual(rangesNodes.length, 1)
@@ -70,7 +70,7 @@ suite('RangeExplorer TestSuite', () => {
 				description: ""
 			}
 		)
-		let { consumptionNodes, rangesNodes } = getNodesOfRanges(ninjaALRanges)
+		const { consumptionNodes, rangesNodes } = callGetNodesOfRanges(ninjaALRanges);
 		assert.strictEqual(consumptionNodes.length, 2)
 		verifySingleEntry(consumptionNodes[0], false, 1, 2)
 		verifySingleEntry(consumptionNodes[1], false, 10, 20)
@@ -91,7 +91,7 @@ suite('RangeExplorer TestSuite', () => {
 				description: "Purchase"
 			}
 		)
-		let { consumptionNodes, rangesNodes } = getNodesOfRanges(ninjaALRanges)
+		const { consumptionNodes, rangesNodes } = callGetNodesOfRanges(ninjaALRanges);
 		assert.strictEqual(consumptionNodes.length, 2)
 		verifySingleEntry(consumptionNodes[0], true, 1, 2, "Sales")
 		verifySingleEntry(consumptionNodes[1], true, 10, 20, "Purchase")
@@ -112,7 +112,7 @@ suite('RangeExplorer TestSuite', () => {
 				description: ""
 			}
 		)
-		let { consumptionNodes, rangesNodes } = getNodesOfRanges(ninjaALRanges)
+		const { consumptionNodes, rangesNodes } = callGetNodesOfRanges(ninjaALRanges);
 		assert.strictEqual(consumptionNodes.length, 2)
 		verifySingleEntry(consumptionNodes[0], true, 1, 2, "Sales")
 		verifySingleEntry(consumptionNodes[1], false, 10, 20)
@@ -143,7 +143,7 @@ suite('RangeExplorer TestSuite', () => {
 				description: ""
 			}
 		)
-		let { consumptionNodes, rangesNodes } = getNodesOfRanges(ninjaALRanges)
+		const { consumptionNodes, rangesNodes } = callGetNodesOfRanges(ninjaALRanges);
 		assert.strictEqual(consumptionNodes.length, 2)
 		verifySingleEntry(consumptionNodes[0], false, 10, 20)
 		verifySingleEntry(consumptionNodes[1], false, 31, 40)
@@ -152,6 +152,15 @@ suite('RangeExplorer TestSuite', () => {
 		verifyMultiEntry(rangesNodes[0], "Sales", [{ "from": 1, "to": 2 }, { "from": 21, "to": 30 }])
 	});
 });
+
+function callGetNodesOfRanges(ninjaALRanges: NinjaALRange[]) {
+	const consumptionNodes: ConsumptionNodeProperty[] = [];
+	const rangesNodes: RangesNodeProperty[] = [];
+	getNodesOfRanges(ninjaALRanges,
+		(range: NinjaALRange, includeNames: boolean) => consumptionNodes.push({ range, includeNames }),
+		(name: string, ranges: NinjaALRange[]) => rangesNodes.push({ name, ranges }));
+	return { consumptionNodes, rangesNodes };
+}
 
 function verifySingleEntry(consumptionNode: ConsumptionNodeProperty, includeName: boolean, from: number, to: number, description?: string) {
 	assert.strictEqual(consumptionNode.includeNames, includeName)
@@ -170,3 +179,5 @@ function verifyMultiEntry(rangesNode: RangesNodeProperty, expectedName: string, 
 		assert.strictEqual(rangesNode.ranges[i].to, expectedRanges[i].to)
 	}
 }
+interface ConsumptionNodeProperty { range: NinjaALRange; includeNames: boolean; }
+interface RangesNodeProperty { name: string; ranges: NinjaALRange[]; }

@@ -13,7 +13,7 @@ import { Node } from "../../Node";
 import { LogicalObjectTypeRangeConsumptionNode } from "./LogicalObjectTypeRangeConsumptionNode";
 import { LogicalObjectTypeRangesNode } from "./LogicalObjectTypeRangesNode";
 import { ObjectTypeNode } from "./ObjectTypeNode";
-import { ConsumptionNodeProperty, getNodesOfRanges, RangesNodeProperty } from "../../../../lib/functions/getNodesOfRanges";
+import { getNodesOfRanges } from "../../../../lib/functions/getNodesOfRanges";
 
 /**
  * Represents an individual logical object type specified under `objectTypes` in `.objidconfig`.
@@ -38,16 +38,10 @@ export class LogicalObjectTypeNode extends ObjectTypeNode implements GoToDefinit
     }
 
     protected override getChildren(): Node[] {
-        const logicalRanges = this.app.config.getObjectTypeRanges(this._objectType);
-        const { consumptionNodes, rangesNodes } = getNodesOfRanges(logicalRanges);
-
         const children: Node[] = [];
-        consumptionNodes.map((consumptionNode: ConsumptionNodeProperty) => {
-            children.push(new LogicalObjectTypeRangeConsumptionNode(this, this._objectType, consumptionNode.range, consumptionNode.includeNames));
-        });
-        rangesNodes.map((rangesNode: RangesNodeProperty) => {
-            children.push(new LogicalObjectTypeRangesNode(this, this._objectType, rangesNode.name, rangesNode.ranges));
-        });
+        getNodesOfRanges(this.app.config.getObjectTypeRanges(this._objectType),
+            (range: NinjaALRange, includeNames: boolean) => children.push(new LogicalObjectTypeRangeConsumptionNode(this, this._objectType, range, includeNames)),
+            (name: string, ranges: NinjaALRange[]) => children.push(new LogicalObjectTypeRangesNode(this, this._objectType, name, ranges)));
         return children;
     }
 
