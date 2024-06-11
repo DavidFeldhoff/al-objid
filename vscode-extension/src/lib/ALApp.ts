@@ -1,6 +1,6 @@
 import * as path from "path";
 import * as fs from "fs";
-import { Disposable, EventEmitter, Uri, WorkspaceFolder } from "vscode";
+import { Disposable, EventEmitter, Uri, WorkspaceFolder, workspace } from "vscode";
 import { getSha256 } from "./functions/getSha256";
 import { ALAppManifest } from "./ALAppManifest";
 import { ObjIdConfig } from "./ObjIdConfig";
@@ -13,6 +13,8 @@ import { BackEndAppInfo } from "./backend/BackEndAppInfo";
 import { Telemetry, TelemetryEventType } from "./Telemetry";
 import { AssigmentMonitor } from "../features/AssignmentMonitor";
 import { WorkspaceManager } from "../features/WorkspaceManager";
+import { parse } from "comment-json";
+import { SymbolReference } from "./types/SymbolReference";
 
 export class ALApp implements Disposable, BackEndAppInfo {
     private readonly _uri: Uri;
@@ -24,6 +26,7 @@ export class ALApp implements Disposable, BackEndAppInfo {
     private readonly _configWatcher: ObjIdConfigWatcher;
     private readonly _onManifestChanged = new EventEmitter<ALApp>();
     private readonly _onConfigChanged = new EventEmitter<ALApp>();
+    private readonly _packageCachePath: string[];
     public readonly onManifestChanged = this._onManifestChanged.event;
     public readonly onConfigChanged = this._onConfigChanged.event;
     private _diposed = false;
@@ -38,6 +41,7 @@ export class ALApp implements Disposable, BackEndAppInfo {
         this._name = name;
         this._configUri = Uri.file(path.join(uri.fsPath, CONFIG_FILE_NAME));
         this._config = this.createObjectIdConfig();
+        this._packageCachePath = this.getPackageCachePath();
 
         this._manifestWatcher = new FileWatcher(manifest.uri);
         this._manifestChanged = this._manifestWatcher.onChanged(() => this.onManifestChangedFromWatcher());
@@ -53,6 +57,28 @@ export class ALApp implements Disposable, BackEndAppInfo {
         );
 
         this._assignmentMonitor = new AssigmentMonitor(uri, this._config.appPoolId || this.hash);
+    }
+    private getPackageCachePath(): string[] {
+        const settingsJsonPath = path.join(this.uri.fsPath, ".vscode", "settings.json");
+        if (fs.existsSync(settingsJsonPath)) {
+            const content = fs.readFileSync(settingsJsonPath).toString() || "{}";
+            const settingsJson = parse(content) as Record<string, any>;
+            if (settingsJson["al.packageCachePath"]) {
+                const packageCachePath = settingsJson["al.packageCachePath"];
+                return Array.isArray(packageCachePath) ?
+                    packageCachePath :
+                    [packageCachePath];
+            }
+        }
+        if (workspace.workspaceFile) {
+            const content = fs.readFileSync(workspace.workspaceFile.fsPath).toString() || "{}";
+            const workspaceSettingsJson = parse(content) as Record<string, any>;
+            if (workspaceSettingsJson["settings"] && workspaceSettingsJson["settings"]["al.packageCachePath"]) {
+                const packageCachePath = workspaceSettingsJson["settings"]["al.packageCachePath"] as string[];
+                return Array.isArray(packageCachePath) ? packageCachePath : [packageCachePath];
+            }
+        }
+        return [];
     }
 
     private createObjectIdConfig(): ObjIdConfig {
@@ -179,6 +205,14 @@ export class ALApp implements Disposable, BackEndAppInfo {
     }
 
     /**
+     * Returns the dependencies of this app.
+     * @returns The json object of the SymbolReference.json file of all apps inside the alPackagesCachePath of this app.
+     */
+    public async getSymbolReferences(): Promise<SymbolReference[]> {
+        return await WorkspaceManager.instance.getSymbolReferences(this);
+    }
+
+    /**
      * Encryption key of the app ID, to be used for encrypting potentially sensitive information
      * during back-end communication. Never send
      */
@@ -192,6 +226,14 @@ export class ALApp implements Disposable, BackEndAppInfo {
         const numeric = parseInt(first, 16);
         this._encryptionKey = key.substring(numeric, numeric + 32);
         return this._encryptionKey;
+    }
+
+    /**
+     * Returns the package cache path(s) for this app. If the path is not specified in the app settings or in the workspace settings
+     * an empty array is returned.
+     */
+    public get packageCachePath(): string[] {
+        return this._packageCachePath;
     }
 
     /**

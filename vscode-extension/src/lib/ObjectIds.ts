@@ -4,6 +4,7 @@ import { executeWithStopwatchAsync } from "./MeasureTime";
 import { ALObject } from "@vjeko.com/al-parser-types-ninja";
 import { ParserConnector } from "../features/ParserConnector";
 import { getExtendedId } from "./functions/getExtendedId";
+import { readFileSync } from "fs";
 
 export async function getWorkspaceFolderFiles(uri: Uri): Promise<Uri[]> {
     let folderPath: string = uri.fsPath;
@@ -27,8 +28,7 @@ export async function updateActualConsumption(objects: ALObject[], consumption: 
 
         let typeAndId = `${type}_${id}`;
         if ((object.fields || object.values) && ["tableextension", "enumextension"].includes(type.toLowerCase())) {
-            const extendedDoc = await workspace.openTextDocument(object.path)
-            const extendedId = await getExtendedId(extendedDoc.uri, extendedDoc.getText(), extendedDoc.eol);
+            const extendedId = await getExtendedId(Uri.file(object.path), readFileSync(object.path, { encoding: 'utf8' }));
             typeAndId = `${type}_${extendedId}`;
         }
         if (object.fields) {

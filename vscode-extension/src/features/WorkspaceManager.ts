@@ -4,6 +4,12 @@ import { PropertyBag } from "../lib/types/PropertyBag";
 import { QuickPickWrapper } from "../lib/QuickPickWrapper";
 import { UI } from "../lib/UI";
 import { ALFoldersChangedEvent } from "../lib/types/ALFoldersChangedEvent";
+import { join } from "path";
+import { existsSync, readdirSync, readFileSync, statSync } from "fs";
+import { SymbolReferenceSchema } from "../lib/types/SymbolReferenceSchema";
+import JSZip = require("jszip");
+import { parse, ParseError } from "jsonc-parser";
+import { SymbolReference } from "../lib/types/SymbolReference";
 
 export class WorkspaceManager implements Disposable {
     private static _instance: WorkspaceManager;
@@ -11,6 +17,7 @@ export class WorkspaceManager implements Disposable {
     private readonly _appHashMap: PropertyBag<ALApp> = {};
     private readonly _onDidChangeALFolders = new EventEmitter<ALFoldersChangedEvent>();
     public readonly onDidChangeALFolders = this._onDidChangeALFolders.event;
+    private _symbolReferences: Promise<SymbolReference[]>;
     private _apps: ALApp[] = [];
     private _folders: WorkspaceFolder[] = [];
     private _disposed = false;
@@ -21,13 +28,14 @@ export class WorkspaceManager implements Disposable {
             this.onDidChangeWorkspaceFolders.bind(this)
         );
         this.addFoldersToWatch((workspace.workspaceFolders || []) as WorkspaceFolder[]);
+        this._symbolReferences = this.loadSymbolReferences();
     }
 
     public static get instance(): WorkspaceManager {
         return this._instance || (this._instance = new WorkspaceManager());
     }
 
-    private onDidChangeWorkspaceFolders({ added, removed }: WorkspaceFoldersChangeEvent) {
+    private async onDidChangeWorkspaceFolders({ added, removed }: WorkspaceFoldersChangeEvent) {
         // Remove any ALApp instances that are no longer in workspace
         const alRemoved: ALApp[] = [];
         this._apps = this._apps.filter(app => {
@@ -46,6 +54,7 @@ export class WorkspaceManager implements Disposable {
         // Add any folders that are added to the workspace
         const alAdded: ALApp[] = [];
         this.addFoldersToWatch(added as WorkspaceFolder[], alAdded);
+        this._symbolReferences = this.loadSymbolReferences(await this._symbolReferences);
 
         // Fire the event with any AL Apps added or removed
         if (alRemoved.length || alAdded.length) {
@@ -69,6 +78,42 @@ export class WorkspaceManager implements Disposable {
             this._appMap[app.uri.fsPath] = app;
             this._appHashMap[app.hash] = app;
             addedApps?.push(app);
+        }
+    }
+
+    private async loadSymbolReferences(_symbolReferences: SymbolReference[] = []) {
+        for (const app of this.alApps) {
+            for (const packageCachePath of app.packageCachePath) {
+                if (!existsSync(join(app.uri.fsPath, packageCachePath))) { continue; }
+                const dependencyFiles = readdirSync(join(app.uri.fsPath, packageCachePath), { withFileTypes: true }).filter(dirent => dirent.isFile() && dirent.name.endsWith('.app'))
+                for (const dependencyFile of dependencyFiles) {
+                    await this.loadDependencyFile(_symbolReferences, app, join(app.uri.fsPath, packageCachePath, dependencyFile.name));
+                }
+            }
+        }
+        return _symbolReferences;
+    }
+
+    private async loadDependencyFile(_symbolReferences: SymbolReference[], app: ALApp, dependencyFileFullPath: string) {
+        if (_symbolReferences.some(symref => symref.fsPath === dependencyFileFullPath && symref.fileLastModified === statSync(dependencyFileFullPath).mtime)) {
+            return;
+        }
+        const data = readFileSync(dependencyFileFullPath);
+        const zip = await JSZip.loadAsync(data);
+        const symbolReferenceJson = zip.file("SymbolReference.json");
+        if (symbolReferenceJson) {
+            const content = await symbolReferenceJson.async("string");
+            let errors: ParseError[] = [];
+            const symbolReference = parse(content, errors, { allowEmptyContent: true, allowTrailingComma: true, disallowComments: false }) as SymbolReferenceSchema;
+            console.log(`Json parse of ${dependencyFileFullPath} successful, but with errors: ${errors.length}.`);
+            errors.forEach(error => console.log(error));
+
+            _symbolReferences.push({
+                app,
+                fsPath: dependencyFileFullPath,
+                fileLastModified: statSync(dependencyFileFullPath).mtime,
+                symbolReferenceSchema: symbolReference
+            });
         }
     }
 
@@ -123,6 +168,13 @@ export class WorkspaceManager implements Disposable {
      */
     public get alApps(): ALApp[] {
         return [...this._apps];
+    }
+
+    public async getSymbolReferences(app?: ALApp): Promise<SymbolReference[]> {
+        if (app) {
+            return (await this._symbolReferences).filter(symref => symref.app.hash === app.hash);
+        }
+        return await this._symbolReferences;
     }
 
     /**

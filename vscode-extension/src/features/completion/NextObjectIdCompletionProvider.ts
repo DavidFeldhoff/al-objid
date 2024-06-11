@@ -125,7 +125,7 @@ async function getTypeAtPositionRaw(
                 context.injectSemicolon = true;
             }
             if (matches[0].name.toLowerCase().startsWith("tableextension")) {
-                const extendedId = await getExtendedId(document.uri, document.getText(), document.eol)
+                const extendedId = await getExtendedId(document.uri, document.getText())
                 if (extendedId) {
                     return `${objectParts[0]}_${extendedId}`;
                 }
@@ -145,7 +145,7 @@ async function getTypeAtPositionRaw(
                     context.injectSemicolon = true;
                 }
                 if (matches[0].name.toLowerCase().startsWith("enumextension")) {
-                    const extendedId = await getExtendedId(document.uri, document.getText(), document.eol)
+                    const extendedId = await getExtendedId(document.uri, document.getText())
                     if (extendedId) {
                         return `${objectParts[0]}_${extendedId}`;
                     }
