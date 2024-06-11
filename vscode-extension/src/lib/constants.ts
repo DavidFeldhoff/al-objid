@@ -85,3 +85,4 @@ export const API_RESULT = {
     ERROR_HANDLED: Symbol("ERROR_HANDLED"),
     ERROR_NOT_HANDLED: Symbol("ERROR_NOT_HANDLED"),
 };
+export const DEFAULT_RANGE_DESCRIPTION = "Unknown Range";

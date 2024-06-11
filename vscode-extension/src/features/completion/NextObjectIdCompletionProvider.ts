@@ -17,6 +17,7 @@ import { showDocument } from "../../lib/functions/showDocument";
 import { InteractiveCompletionItem } from "./InteractiveCompletionItem";
 import { continueWithAssignment, stopAsking, stopSyncing } from "./completionFunctions";
 import { getExtendedId } from "../../lib/functions/getExtendedId";
+import { getDescriptionOfRange } from "../../lib/functions/getDescriptionOfRange";
 
 type SymbolInfo = {
     type: string;
@@ -228,12 +229,10 @@ export class NextObjectIdCompletionProvider {
                 const id = objectId.id[i];
                 const range = getRangeForId(id as number, app.config.getObjectTypeRanges(type));
                 if (range) {
-                    let description = "";
-                    if (range.description) { description = range.description }
-                    if (logicalNames.includes(description)) {
+                    if (logicalNames.includes(getDescriptionOfRange(range))) {
                         continue;
                     }
-                    logicalNames.push(description);
+                    logicalNames.push(getDescriptionOfRange(range));
                 }
                 const objectIdCopy = { ...objectId, id };
                 const deeperContext = {

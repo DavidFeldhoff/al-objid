@@ -12,6 +12,7 @@ import { BCLicense } from "./BCLicense";
 import { ObjIdConfigLinter } from "../features/linters/ObjIdConfigLinter";
 import { Telemetry, TelemetryEventType } from "./Telemetry";
 import { Config } from "./Config";
+import { getDescriptionOfRange } from "./functions/getDescriptionOfRange";
 
 interface ObjIdConfigJson {
     authKey: string;
@@ -193,10 +194,10 @@ export class ObjIdConfig {
             if (!range) {
                 continue;
             }
-            if (names.find(name => name.toLowerCase().trim() === (range.description || "").toLowerCase().trim())) {
+            if (names.find(name => name.toLowerCase().trim() === getDescriptionOfRange(range).toLowerCase().trim())) {
                 continue;
             }
-            names.push(range.description || "");
+            names.push(getDescriptionOfRange(range));
         }
         this._logicalRangeNames = names;
         return names;

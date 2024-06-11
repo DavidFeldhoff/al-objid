@@ -13,6 +13,7 @@ import { LogicalRangeGroupNode } from "./LogicalRangeGroupNode";
 import { LogicalRangeNamedNode } from "./LogicalRangeNamedNode";
 import { NinjaIcon } from "../../../../lib/NinjaIcon";
 import { AppCommandContext } from "../../../../commands/contexts/AppCommandContext";
+import { getChildrenOfLogicalRangesGroupNode } from "../../../../lib/functions/getChildrenOfLogicalRangesGroupNode";
 
 /**
  * Displays a node that shows "Logical Ranges" label and contains the list of logical ranges.
@@ -23,8 +24,7 @@ import { AppCommandContext } from "../../../../commands/contexts/AppCommandConte
  */
 export class LogicalRangesGroupNode
     extends AppAwareDescendantNode
-    implements GoToDefinitionCommandContext<NinjaALRange>, AppCommandContext
-{
+    implements GoToDefinitionCommandContext<NinjaALRange>, AppCommandContext {
     protected override _iconPath = NinjaIcon["logical-range"];
     protected override _uriPathPart = "logicalranges";
     protected override readonly _label = "Logical Ranges";
@@ -38,18 +38,11 @@ export class LogicalRangesGroupNode
     }
 
     protected override getChildren(): Node[] {
-        const logicalRangeNames = this.app.config.logicalRangeNames;
-        const logicalRanges = this.app.config.idRanges;
-
-        const children = logicalRangeNames.map(name => {
-            const compareName = (name || "").toLowerCase().trim();
-            const ranges = logicalRanges.filter(
-                range => (range.description || "").toLowerCase().trim() === compareName
-            );
-            return ranges.length === 1
-                ? new LogicalRangeNamedNode(this, ranges[0])
-                : new LogicalRangeGroupNode(this, name, logicalRanges);
-        });
+        const children: Node[] = [];
+        getChildrenOfLogicalRangesGroupNode(this.app.config.logicalRangeNames,
+            this.app.config.idRanges,
+            (range: NinjaALRange) => children.push(new LogicalRangeNamedNode(this, range)),
+            (name: string, ranges: NinjaALRange[]) => children.push(new LogicalRangeGroupNode(this, name, ranges)));
 
         return children;
     }

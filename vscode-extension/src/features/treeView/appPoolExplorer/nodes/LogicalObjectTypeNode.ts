@@ -5,7 +5,7 @@ import { ObjectTypeNode } from "./ObjectTypeNode";
 import { LogicalObjectTypeRangesNode } from "./LogicalObjectTypeRangesNode";
 import { NinjaIcon } from "../../../../lib/NinjaIcon";
 import { AppPoolAwareNode } from "./AppPoolAwareNode";
-import { getNodesOfRanges } from "../../../../lib/functions/getNodesOfRanges";
+import { getChildrenOfLogicalObjectTypeNode } from "../../../../lib/functions/getChildrenOfLogicalObjectTypeNode";
 import { NinjaALRange } from "../../../../lib/types/NinjaALRange";
 
 /**
@@ -31,7 +31,7 @@ export class LogicalObjectTypeNode extends ObjectTypeNode {
 
     protected override getChildren(): Node[] {
         const children: Node[] = [];
-        getNodesOfRanges(this.rootNode.objectRanges[this._objectType],
+        getChildrenOfLogicalObjectTypeNode(this.rootNode.objectRanges[this._objectType],
             (range: NinjaALRange, includeNames: boolean) => children.push(new LogicalObjectTypeRangeConsumptionNode(this, this._objectType, range, includeNames)),
             (name: string, ranges: NinjaALRange[]) => children.push(new LogicalObjectTypeRangesNode(this, this._objectType, name, ranges)))
         return children;

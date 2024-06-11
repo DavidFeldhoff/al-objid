@@ -61,11 +61,6 @@ export class RangeExplorerRootNode extends RootNode implements AppAwareNode, App
     protected override getChildren(): Node[] {
         let children: Node[] = [];
 
-        // Test if it works to only show a a few nodes and not all (physical, logical, object)
-        if (this.app.config.appPoolId && this._hasObject) {
-            return this.app.config.objectTypesSpecified.map(objectType => new LogicalObjectTypeNode(this, objectType));
-        }
-
         if (!this._hasLogical && !this._hasObject) {
             children = this._app.manifest.idRanges.map(range => new PhysicalRangeNode(this, range));
         } else {

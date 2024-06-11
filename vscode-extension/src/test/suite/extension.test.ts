@@ -4,7 +4,9 @@ import * as assert from 'assert';
 // as well as import your extension to test it
 import * as vscode from 'vscode';
 import { NinjaALRange } from '../../lib/types/NinjaALRange';
-import { getNodesOfRanges } from '../../lib/functions/getNodesOfRanges';
+import { getChildrenOfLogicalObjectTypeNode } from '../../lib/functions/getChildrenOfLogicalObjectTypeNode';
+import { getDescriptionOfRange } from '../../lib/functions/getDescriptionOfRange';
+import { DEFAULT_RANGE_DESCRIPTION } from '../../lib/constants';
 // import * as myExtension from '../../extension';
 
 suite('RangeExplorer TestSuite', () => {
@@ -32,7 +34,7 @@ suite('RangeExplorer TestSuite', () => {
 		})
 		const { consumptionNodes, rangesNodes } = callGetNodesOfRanges(ninjaALRanges);
 		assert.strictEqual(consumptionNodes.length, 1)
-		verifySingleEntry(consumptionNodes[0], false, 1, 2);
+		verifySingleEntry(consumptionNodes[0], true, 1, 2, DEFAULT_RANGE_DESCRIPTION);
 
 		assert.strictEqual(rangesNodes.length, 0)
 	});
@@ -72,8 +74,8 @@ suite('RangeExplorer TestSuite', () => {
 		)
 		const { consumptionNodes, rangesNodes } = callGetNodesOfRanges(ninjaALRanges);
 		assert.strictEqual(consumptionNodes.length, 2)
-		verifySingleEntry(consumptionNodes[0], false, 1, 2)
-		verifySingleEntry(consumptionNodes[1], false, 10, 20)
+		verifySingleEntry(consumptionNodes[0], true, 1, 2, DEFAULT_RANGE_DESCRIPTION)
+		verifySingleEntry(consumptionNodes[1], true, 10, 20, DEFAULT_RANGE_DESCRIPTION)
 
 		assert.strictEqual(rangesNodes.length, 0)
 	});
@@ -115,7 +117,7 @@ suite('RangeExplorer TestSuite', () => {
 		const { consumptionNodes, rangesNodes } = callGetNodesOfRanges(ninjaALRanges);
 		assert.strictEqual(consumptionNodes.length, 2)
 		verifySingleEntry(consumptionNodes[0], true, 1, 2, "Sales")
-		verifySingleEntry(consumptionNodes[1], false, 10, 20)
+		verifySingleEntry(consumptionNodes[1], true, 10, 20, DEFAULT_RANGE_DESCRIPTION)
 
 		assert.strictEqual(rangesNodes.length, 0)
 	});
@@ -144,19 +146,18 @@ suite('RangeExplorer TestSuite', () => {
 			}
 		)
 		const { consumptionNodes, rangesNodes } = callGetNodesOfRanges(ninjaALRanges);
-		assert.strictEqual(consumptionNodes.length, 2)
-		verifySingleEntry(consumptionNodes[0], false, 10, 20)
-		verifySingleEntry(consumptionNodes[1], false, 31, 40)
+		assert.strictEqual(consumptionNodes.length, 0)
 
-		assert.strictEqual(rangesNodes.length, 1)
+		assert.strictEqual(rangesNodes.length, 2)
 		verifyMultiEntry(rangesNodes[0], "Sales", [{ "from": 1, "to": 2 }, { "from": 21, "to": 30 }])
+		verifyMultiEntry(rangesNodes[1], DEFAULT_RANGE_DESCRIPTION, [{ "from": 10, "to": 20 }, { "from": 31, "to": 40 }])
 	});
 });
 
 function callGetNodesOfRanges(ninjaALRanges: NinjaALRange[]) {
 	const consumptionNodes: ConsumptionNodeProperty[] = [];
 	const rangesNodes: RangesNodeProperty[] = [];
-	getNodesOfRanges(ninjaALRanges,
+	getChildrenOfLogicalObjectTypeNode(ninjaALRanges,
 		(range: NinjaALRange, includeNames: boolean) => consumptionNodes.push({ range, includeNames }),
 		(name: string, ranges: NinjaALRange[]) => rangesNodes.push({ name, ranges }));
 	return { consumptionNodes, rangesNodes };
@@ -168,7 +169,7 @@ function verifySingleEntry(consumptionNode: ConsumptionNodeProperty, includeName
 	assert.strictEqual(consumptionNode.range.to, to)
 	if (includeName) {
 		assert.notStrictEqual(consumptionNode.range.description, undefined)
-		assert.strictEqual(consumptionNode.range.description, description)
+		assert.strictEqual(getDescriptionOfRange(consumptionNode.range), description)
 	}
 }
 function verifyMultiEntry(rangesNode: RangesNodeProperty, expectedName: string, expectedRanges: { from: number, to: number }[]) {

@@ -5,6 +5,7 @@ import { LogicalRangeGroupNode } from "./LogicalRangeGroupNode";
 import { LogicalRangeNamedNode } from "./LogicalRangeNamedNode";
 import { NinjaIcon } from "../../../../lib/NinjaIcon";
 import { AppPoolAwareDescendantNode, AppPoolAwareNode } from "./AppPoolAwareNode";
+import { getChildrenOfLogicalRangesGroupNode } from "../../../../lib/functions/getChildrenOfLogicalRangesGroupNode";
 
 /**
  * Displays a node that shows "Logical Ranges" label and contains the list of logical ranges.
@@ -26,18 +27,11 @@ export class LogicalRangesGroupNode extends AppPoolAwareDescendantNode {
     }
 
     protected override getChildren(): Node[] {
-        const logicalRangeNames = this.rootNode.logicalRangeNames;
-        const logicalRanges = this.rootNode.logicalRanges;
-
-        const children = logicalRangeNames.map(name => {
-            const compareName = (name || "").toLowerCase().trim();
-            const ranges = logicalRanges.filter(
-                range => (range.description || "").toLowerCase().trim() === compareName
-            );
-            return ranges.length === 1
-                ? new LogicalRangeNamedNode(this, ranges[0])
-                : new LogicalRangeGroupNode(this, name, logicalRanges);
-        });
+        const children: Node[] = [];
+        getChildrenOfLogicalRangesGroupNode(this.rootNode.logicalRangeNames,
+            this.rootNode.logicalRanges,
+            (range: NinjaALRange) => children.push(new LogicalRangeNamedNode(this, range)),
+            (name: string, ranges: NinjaALRange[]) => children.push(new LogicalRangeGroupNode(this, name, ranges)));
 
         return children;
     }
