@@ -1,6 +1,6 @@
 import * as path from "path";
 import * as fs from "fs";
-import { Disposable, EventEmitter, Uri, WorkspaceFolder, workspace } from "vscode";
+import { Disposable, EventEmitter, Uri, WorkspaceFolder, extensions, workspace } from "vscode";
 import { getSha256 } from "./functions/getSha256";
 import { ALAppManifest } from "./ALAppManifest";
 import { ObjIdConfig } from "./ObjIdConfig";
@@ -14,7 +14,8 @@ import { Telemetry, TelemetryEventType } from "./Telemetry";
 import { AssigmentMonitor } from "../features/AssignmentMonitor";
 import { WorkspaceManager } from "../features/WorkspaceManager";
 import { parse } from "comment-json";
-import { SymbolReference } from "./types/SymbolReference";
+import { ALAppPackage } from "./types/ALAppPackage";
+import versionCompare from "version-compare";
 
 export class ALApp implements Disposable, BackEndAppInfo {
     private readonly _uri: Uri;
@@ -29,6 +30,7 @@ export class ALApp implements Disposable, BackEndAppInfo {
     private readonly _packageCachePath: string[];
     public readonly onManifestChanged = this._onManifestChanged.event;
     public readonly onConfigChanged = this._onConfigChanged.event;
+    private _loadAllDependenciesPromise: Promise<ALAppPackage[]> | undefined = undefined;
     private _diposed = false;
     private _manifest: ALAppManifest;
     private _config: ObjIdConfig;
@@ -57,6 +59,7 @@ export class ALApp implements Disposable, BackEndAppInfo {
         );
 
         this._assignmentMonitor = new AssigmentMonitor(uri, this._config.appPoolId || this.hash);
+        this.loadAllDependencies();
     }
     private getPackageCachePath(): string[] {
         const settingsJsonPath = path.join(this.uri.fsPath, ".vscode", "settings.json");
@@ -78,7 +81,7 @@ export class ALApp implements Disposable, BackEndAppInfo {
                 return Array.isArray(packageCachePath) ? packageCachePath : [packageCachePath];
             }
         }
-        return [];
+        return extensions.getExtension("ms-dynamics-smb.al")?.packageJSON.contributes?.configuration?.properties['al.packageCachePath']?.default || ["./.alpackages "]
     }
 
     private createObjectIdConfig(): ObjIdConfig {
@@ -205,11 +208,35 @@ export class ALApp implements Disposable, BackEndAppInfo {
     }
 
     /**
-     * Returns the dependencies of this app.
+     * Loads all .app files of the packageCachePaths of this app. In the best case it simply returns these from the workspace cache, but it might also update the cache if necessary.
+     * @returns The .app-packages of the dependencies of this app while making use of a workspace dependency cache.
+     */
+    private async loadAllDependencies(): Promise<ALAppPackage[]> {
+        if (this._loadAllDependenciesPromise)
+            return this._loadAllDependenciesPromise;
+        this._loadAllDependenciesPromise = WorkspaceManager.instance.loadDependencyPackages(this.uri.fsPath, this.packageCachePath);
+        this._loadAllDependenciesPromise.then(() => { this._loadAllDependenciesPromise = undefined; });
+        return this._loadAllDependenciesPromise;
+    }
+
+    /**
+     * Returns only the highest version of each dependency of this app.
      * @returns The json object of the SymbolReference.json file of all apps inside the alPackagesCachePath of this app.
      */
-    public async getSymbolReferences(): Promise<SymbolReference[]> {
-        return await WorkspaceManager.instance.getSymbolReferences(this);
+    public async getDependencies(): Promise<ALAppPackage[]> {
+        const startTime = Date.now();
+        const allAppPackages = await this.loadAllDependencies();
+        output.log(`Dependency Loading: Loading dependencies for ${this.name} took ${Date.now() - startTime} ms.`);
+        const appPackages = allAppPackages.filter(appPackage => appPackage !== undefined) as ALAppPackage[];
+
+        const dependencies: ALAppPackage[] = []
+        const uniqueApps = new Set(appPackages.map(p => p.appId))
+        uniqueApps.forEach(appId => {
+            const appVersions = appPackages.filter(p => p.appId === appId)
+            const latestVersion = appVersions.reduce((prev, current) => versionCompare(prev.version, current.version) >= 0 ? prev : current)
+            dependencies.push(latestVersion)
+        });
+        return dependencies;
     }
 
     /**

@@ -1,61 +1,61 @@
-export interface SymbolReferenceSchema {
+export interface SymbolReferenceRoot {
     RuntimeVersion: string;
-    Namespaces?: SymbolReferenceNamespaceSchema[];
-    Tables?: SymbolReferenceTableSchema[];
-    Codeunits: SymbolReferenceCodeunitSchema[];
-    Pages?: SymbolReferencePageSchema[];
+    Namespaces?: SymbolReferenceNamespace[];
+    Tables?: SymbolReferenceTable[];
+    Codeunits: SymbolReferenceCodeunit[];
+    Pages?: SymbolReferencePage[];
     Reports: Record<string, any>[];
     XmlPorts: Record<string, any>[];
-    Queries: SymbolReferenceQuerySchema[];
+    Queries: SymbolReferenceQuery[];
     ControlAddIns: Record<string, any>[];
-    EnumTypes: SymbolReferenceEnumTypeSchema[];
+    EnumTypes: SymbolReferenceEnumType[];
     DotNetPackages: Record<string, any>[];
-    Interfaces: SymbolReferenceInterfaceSchema[];
-    PermissionSets: SymbolReferencePermissionSchema[];
+    Interfaces: SymbolReferenceInterface[];
+    PermissionSets: SymbolReferencePermission[];
     PermissionSetExtensions: Record<string, any>[];
     ReportExtensions: Record<string, any>[];
     Name: string;
 }
-export interface SymbolReferenceNamespaceSchema {
-    Namespaces?: SymbolReferenceNamespaceSchema[];
-    Tables?: SymbolReferenceTableSchema[];
-    Codeunits: SymbolReferenceCodeunitSchema[];
-    Pages?: SymbolReferencePageSchema[];
+export interface SymbolReferenceNamespace {
+    Namespaces?: SymbolReferenceNamespace[];
+    Tables?: SymbolReferenceTable[];
+    Codeunits: SymbolReferenceCodeunit[];
+    Pages?: SymbolReferencePage[];
     Reports: Record<string, any>[];
     XmlPorts: Record<string, any>[];
-    Queries: SymbolReferenceQuerySchema[];
+    Queries: SymbolReferenceQuery[];
     ControlAddIns: Record<string, any>[];
-    EnumTypes: SymbolReferenceEnumTypeSchema[];
+    EnumTypes: SymbolReferenceEnumType[];
     DotNetPackages: Record<string, any>[];
-    Interfaces: SymbolReferenceInterfaceSchema[];
-    PermissionSets: SymbolReferencePermissionSchema[];
+    Interfaces: SymbolReferenceInterface[];
+    PermissionSets: SymbolReferencePermission[];
     PermissionSetExtensions: Record<string, any>[];
     ReportExtensions: Record<string, any>[];
     Name: string;
 }
-export interface SymbolReferenceObjectSchema {
+export interface SymbolReferenceObject {
     ReferenceSourceFileName: string;
     Properties: Record<string, any>;
     Id: number;
     Name: string;
 }
-export interface SymbolReferenceTableSchema extends SymbolReferenceObjectSchema {
+export interface SymbolReferenceTable extends SymbolReferenceObject {
     Fields: Record<string, any>[];
     Keys: Record<string, any>[];
 }
-export interface SymbolReferenceCodeunitSchema extends SymbolReferenceObjectSchema {
+export interface SymbolReferenceCodeunit extends SymbolReferenceObject {
     Variables: Record<string, any>[];
     Methods: Record<string, any>[];
 }
-export interface SymbolReferenceInterfaceSchema {
+export interface SymbolReferenceInterface {
     Methods: Record<string, any>[];
     ReferenceSourceFileName: string;
     Name: string;
 }
-export interface SymbolReferencePermissionSchema extends SymbolReferenceObjectSchema {
+export interface SymbolReferencePermission extends SymbolReferenceObject {
     Permissions: Record<string, any>[];
 }
-export interface SymbolReferenceEnumTypeSchema extends SymbolReferenceObjectSchema {
+export interface SymbolReferenceEnumType extends SymbolReferenceObject {
     Values: Record<string, any>[];
 }
 export interface SymbolReferenceEnumExtensionTypeSchema {
@@ -65,10 +65,10 @@ export interface SymbolReferenceEnumExtensionTypeSchema {
     Values: Record<string, any>[];
     TargetObject: string;
 }
-export interface SymbolReferenceQuerySchema extends SymbolReferenceObjectSchema {
+export interface SymbolReferenceQuery extends SymbolReferenceObject {
     Elements: Record<string, any>[];
 }
-export interface SymbolReferencePageSchema extends SymbolReferenceObjectSchema {
+export interface SymbolReferencePage extends SymbolReferenceObject {
     Methods: Record<string, any>[];
     Controls: Record<string, any>[];
 }

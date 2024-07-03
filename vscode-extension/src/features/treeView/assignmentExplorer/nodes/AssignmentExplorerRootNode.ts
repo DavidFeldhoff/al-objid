@@ -65,13 +65,13 @@ export class AssignmentExplorerRootNode extends RootNode implements AppAwareNode
     private mergeAssignments() {
         this._assigned = [];
         this._unassigned = [];
+        //TODO: this._assigned not working for app pool as it should only show assigned objects of current app to see which one are lost
         for (let hash in this._assignedPerApp) {
             this._assigned.push(...this._assignedPerApp[hash]);
         }
         for (let hash in this._unassignedPerApp) {
             this._unassigned.push(...this._unassignedPerApp[hash]);
         }
-        // Filter to contain unique assignments
     }
 
     protected override getChildren(): Node[] {

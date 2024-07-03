@@ -459,6 +459,7 @@
         "comment-json": "^4.1.1",
         "jsonc-parser": "^3.2.1",
         "jszip": "^3.10.1",
+        "version-compare": "^3.11.0",
         "xml2js": "^0.5.0"
     }
 }

@@ -11,7 +11,6 @@ import { LogicalRangesGroupNode } from "./LogicalRangesGroupNode";
 import { ObjectRangesGroupNode } from "./ObjectRangesGroupNode";
 import { PhysicalRangeNode } from "./PhysicalRangeNode";
 import { PhysicalRangesGroupNode } from "./PhysicalRangesGroupNode";
-import { LogicalObjectTypeNode } from "./LogicalObjectTypeNode";
 
 /**
  * Represents a root node for range explorer.

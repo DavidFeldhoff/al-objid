@@ -1,15 +1,13 @@
-import { Disposable, EventEmitter, Uri, window, workspace, WorkspaceFolder, WorkspaceFoldersChangeEvent } from "vscode";
+import { Disposable, EventEmitter, extensions, Uri, window, workspace, WorkspaceFolder, WorkspaceFoldersChangeEvent } from "vscode";
 import { ALApp } from "../lib/ALApp";
 import { PropertyBag } from "../lib/types/PropertyBag";
 import { QuickPickWrapper } from "../lib/QuickPickWrapper";
 import { UI } from "../lib/UI";
 import { ALFoldersChangedEvent } from "../lib/types/ALFoldersChangedEvent";
-import { join } from "path";
-import { existsSync, readdirSync, readFileSync, statSync } from "fs";
-import { SymbolReferenceSchema } from "../lib/types/SymbolReferenceSchema";
-import JSZip = require("jszip");
-import { parse, ParseError } from "jsonc-parser";
-import { SymbolReference } from "../lib/types/SymbolReference";
+import { isAbsolute, join } from "path";
+import { readdirSync } from "fs";
+import { ALAppPackage } from "../lib/types/ALAppPackage";
+import { LogLevel, Output } from "./Output";
 
 export class WorkspaceManager implements Disposable {
     private static _instance: WorkspaceManager;
@@ -17,7 +15,7 @@ export class WorkspaceManager implements Disposable {
     private readonly _appHashMap: PropertyBag<ALApp> = {};
     private readonly _onDidChangeALFolders = new EventEmitter<ALFoldersChangedEvent>();
     public readonly onDidChangeALFolders = this._onDidChangeALFolders.event;
-    private _symbolReferences: Promise<SymbolReference[]>;
+    private _dependencyPackages: Map<Uri, Promise<ALAppPackage | undefined>> = new Map(); // Map of dependency packages to workspace apps as al.packageCachePath might have shared paths and files should only be loaded once then
     private _apps: ALApp[] = [];
     private _folders: WorkspaceFolder[] = [];
     private _disposed = false;
@@ -27,12 +25,15 @@ export class WorkspaceManager implements Disposable {
         this._workspaceFoldersChangeEvent = workspace.onDidChangeWorkspaceFolders(
             this.onDidChangeWorkspaceFolders.bind(this)
         );
-        this.addFoldersToWatch((workspace.workspaceFolders || []) as WorkspaceFolder[]);
-        this._symbolReferences = this.loadSymbolReferences();
     }
 
     public static get instance(): WorkspaceManager {
-        return this._instance || (this._instance = new WorkspaceManager());
+        // Be aware of the lazy initialization. Needed as App-constructor accesses WorkspaceManager.instance, but that means also that e.g. this._apps is not directly fully available.
+        return this._instance || (this._instance = new WorkspaceManager()).initialize();
+    }
+    private initialize(): this {
+        this.addFoldersToWatch((workspace.workspaceFolders || []) as WorkspaceFolder[]);
+        return this;
     }
 
     private async onDidChangeWorkspaceFolders({ added, removed }: WorkspaceFoldersChangeEvent) {
@@ -54,7 +55,6 @@ export class WorkspaceManager implements Disposable {
         // Add any folders that are added to the workspace
         const alAdded: ALApp[] = [];
         this.addFoldersToWatch(added as WorkspaceFolder[], alAdded);
-        this._symbolReferences = this.loadSymbolReferences(await this._symbolReferences);
 
         // Fire the event with any AL Apps added or removed
         if (alRemoved.length || alAdded.length) {
@@ -81,40 +81,36 @@ export class WorkspaceManager implements Disposable {
         }
     }
 
-    private async loadSymbolReferences(_symbolReferences: SymbolReference[] = []) {
-        for (const app of this.alApps) {
-            for (const packageCachePath of app.packageCachePath) {
-                if (!existsSync(join(app.uri.fsPath, packageCachePath))) { continue; }
-                const dependencyFiles = readdirSync(join(app.uri.fsPath, packageCachePath), { withFileTypes: true }).filter(dirent => dirent.isFile() && dirent.name.endsWith('.app'))
-                for (const dependencyFile of dependencyFiles) {
-                    await this.loadDependencyFile(_symbolReferences, app, join(app.uri.fsPath, packageCachePath, dependencyFile.name));
+    public async loadDependencyPackages(appBasePath: string, packageCachePaths: string[]): Promise<ALAppPackage[]> {
+        const startTime = Date.now();
+        const dependencyPackages: Promise<ALAppPackage | undefined>[] = [];
+        for (const packageCachePath of packageCachePaths) {
+            const packageUri = isAbsolute(packageCachePath) ? Uri.file(packageCachePath) : Uri.file(join(appBasePath, packageCachePath));
+            for (const file of readdirSync(packageUri.fsPath, { withFileTypes: true })) {
+                if (file.isFile() && file.name.endsWith(".app")) {
+                    const fileUri = Uri.file(join(packageUri.fsPath, file.name));
+                    const dependencyPackage = this._dependencyPackages.has(fileUri) ? this.getDependencyPackage(fileUri)! : this.loadDependencyPackage(fileUri);
+                    dependencyPackages.push(dependencyPackage);
                 }
             }
         }
-        return _symbolReferences;
+        const result: Promise<ALAppPackage[]> = Promise.all(dependencyPackages).then(results => {
+            return results.filter(result => result !== undefined) as ALAppPackage[];
+        });
+        const elapsed = Date.now() - startTime;
+        Output.instance.log(`Dependency Loading: Started loading ${dependencyPackages.length} dependency packages in ${elapsed}ms`, LogLevel.Verbose);
+        return result;
+    }
+    private async loadDependencyPackage(dependencyFileFullPath: Uri) {
+        const newDependencyPackage = ALAppPackage.tryCreate(dependencyFileFullPath.fsPath);
+        const startTime = Date.now();
+        newDependencyPackage.then(() => { Output.instance.log(`Dependency Loading: Loaded dependency package ${dependencyFileFullPath.fsPath} in ${Date.now() - startTime}ms`, LogLevel.Verbose); });
+        this._dependencyPackages.set(dependencyFileFullPath, newDependencyPackage);
+        return newDependencyPackage;
     }
 
-    private async loadDependencyFile(_symbolReferences: SymbolReference[], app: ALApp, dependencyFileFullPath: string) {
-        if (_symbolReferences.some(symref => symref.fsPath === dependencyFileFullPath && symref.fileLastModified === statSync(dependencyFileFullPath).mtime)) {
-            return;
-        }
-        const data = readFileSync(dependencyFileFullPath);
-        const zip = await JSZip.loadAsync(data);
-        const symbolReferenceJson = zip.file("SymbolReference.json");
-        if (symbolReferenceJson) {
-            const content = await symbolReferenceJson.async("string");
-            let errors: ParseError[] = [];
-            const symbolReference = parse(content, errors, { allowEmptyContent: true, allowTrailingComma: true, disallowComments: false }) as SymbolReferenceSchema;
-            console.log(`Json parse of ${dependencyFileFullPath} successful, but with errors: ${errors.length}.`);
-            errors.forEach(error => console.log(error));
-
-            _symbolReferences.push({
-                app,
-                fsPath: dependencyFileFullPath,
-                fileLastModified: statSync(dependencyFileFullPath).mtime,
-                symbolReferenceSchema: symbolReference
-            });
-        }
+    public async getDependencyPackage(uri: Uri) {
+        return (await this._dependencyPackages.get(uri))?.reloadIfOutdated();
     }
 
     private async pickFolderOrFolders(multi: boolean, description?: string): Promise<ALApp[] | ALApp | undefined> {
@@ -170,12 +166,7 @@ export class WorkspaceManager implements Disposable {
         return [...this._apps];
     }
 
-    public async getSymbolReferences(app?: ALApp): Promise<SymbolReference[]> {
-        if (app) {
-            return (await this._symbolReferences).filter(symref => symref.app.hash === app.hash);
-        }
-        return await this._symbolReferences;
-    }
+
 
     /**
      * This function returns the ALApp instance to which the specified Uri belongs, or undefined if the Uri does not

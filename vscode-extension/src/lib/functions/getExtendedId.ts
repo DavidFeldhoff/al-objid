@@ -1,12 +1,12 @@
 import { dirname } from "path";
 import { Uri } from "vscode";
 import { WorkspaceManager } from "../../features/WorkspaceManager";
-import { SymbolReferenceNamespaceSchema, SymbolReferenceObjectSchema, SymbolReferenceSchema } from "../types/SymbolReferenceSchema";
+import { SymbolReferenceNamespace, SymbolReferenceObject, SymbolReferenceRoot } from "../types/SymbolReferenceSchema";
 
 
 const baseObjectLookupTable: Record<string, number> = {};
 
-const regexp = /(tableextension|enumextension) \d+ (\w+|"[^"]+") extends (\w+|"[^"]+")/i;
+const regexp = /(tableextension|enumextension)\s+\d+\s+(\w+|"[^"]+")\s+extends\s+(\w+|"[^"]+")/i;
 export async function getExtendedId(uri: Uri, documentText: string): Promise<number | null> {
     const regexpMatchArr = documentText.match(regexp);
     if (!regexpMatchArr || regexpMatchArr.index === undefined) {
@@ -23,10 +23,10 @@ export async function getExtendedId(uri: Uri, documentText: string): Promise<num
     if (!app) {
         return null;
     }
-    for (const symbolReference of await app.getSymbolReferences()) {
-        const baseObject = findBaseObject(symbolReference.symbolReferenceSchema, baseObjectType, baseObjectName)
+    for (const dependencyPackage of await app.getDependencies()) {
+        const baseObject = findBaseObject(dependencyPackage.symbolReference, baseObjectType, baseObjectName)
         if (baseObject) {
-            console.log(`Found base object for ${baseObjectType} ${baseObjectName} in ${symbolReference.symbolReferenceSchema.Name} with id ${baseObject.id}`)
+            console.log(`Found base object for ${baseObjectType} ${baseObjectName} in ${dependencyPackage.symbolReference.Name} with id ${baseObject.id}`)
             baseObjectLookupTable[`${baseObjectType} ${baseObjectName}`] = baseObject.id;
             return baseObject.id;
         }
@@ -34,8 +34,8 @@ export async function getExtendedId(uri: Uri, documentText: string): Promise<num
     return null;
 }
 
-function findBaseObject(symbolReference: SymbolReferenceSchema | SymbolReferenceNamespaceSchema, baseObjectType: string, baseObjectName: string): { name: string, id: number, namespace?: string } | undefined {
-    let objects: SymbolReferenceObjectSchema[] = [];
+function findBaseObject(symbolReference: SymbolReferenceRoot | SymbolReferenceNamespace, baseObjectType: string, baseObjectName: string): { name: string, id: number, namespace?: string } | undefined {
+    let objects: SymbolReferenceObject[] = [];
     switch (baseObjectType) {
         case "tableextension":
             objects = symbolReference.Tables || [];

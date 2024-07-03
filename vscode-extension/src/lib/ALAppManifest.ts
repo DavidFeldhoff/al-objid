@@ -1,6 +1,9 @@
 import * as fs from "fs";
 import { Uri } from "vscode";
 import { ALRange } from "./types/ALRange";
+import { NavxManifest } from "./types/NavxManifest";
+import JSZip = require("jszip");
+import * as xml2js from "xml2js";
 
 interface ALAppJson {
     id: string;
@@ -42,6 +45,36 @@ export class ALAppManifest {
         } catch {
             return;
         }
+    }
+
+    public static async tryCreateFromAppPackage(appPackageUri: Uri) {
+
+        const data = fs.readFileSync(appPackageUri.fsPath);
+        const zip = await JSZip.loadAsync(data);
+        const manifestFile = zip.file("NavxManifest.xml");
+        if (!manifestFile) {
+            return;
+        }
+        const manifestContent = await manifestFile.async("string");
+        let manifest: NavxManifest | undefined;
+        xml2js.parseString(manifestContent, (error, result) => {
+            if (!error) {
+                manifest = result as NavxManifest;
+            }
+        });
+        return manifest && new ALAppManifest(appPackageUri,
+            {
+                id: manifest.Package.App[0].$.Id,
+                name: manifest.Package.App[0].$.Name,
+                publisher: manifest.Package.App[0].$.Publisher,
+                version: manifest.Package.App[0].$.Version,
+                idRanges: manifest.Package.IdRanges.map((idRange) => ({
+                    from: parseInt(idRange.MinObjectId),
+                    to: parseInt(idRange.MaxObjectId),
+                })),
+                preprocessorSymbols: []
+            }
+        );
     }
 
     /**
