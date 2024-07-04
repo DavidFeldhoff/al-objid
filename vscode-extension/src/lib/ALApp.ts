@@ -4,7 +4,7 @@ import { Disposable, EventEmitter, Uri, WorkspaceFolder, extensions, workspace }
 import { getSha256 } from "./functions/getSha256";
 import { ALAppManifest } from "./ALAppManifest";
 import { ObjIdConfig } from "./ObjIdConfig";
-import { APP_FILE_NAME, CONFIG_FILE_NAME } from "./constants";
+import { APP_FILE_NAME, CONFIG_FILE_NAME, MSFT_EXTENSION_ID } from "./constants";
 import { output } from "../features/Output";
 import { FileWatcher } from "./FileWatcher";
 import { ObjIdConfigWatcher } from "./ObjectIdConfigWatcher";
@@ -16,6 +16,7 @@ import { WorkspaceManager } from "../features/WorkspaceManager";
 import { parse } from "comment-json";
 import { ALAppPackage } from "./types/ALAppPackage";
 import versionCompare from "version-compare";
+import { executeWithStopwatchAsync } from "./MeasureTime";
 
 export class ALApp implements Disposable, BackEndAppInfo {
     private readonly _uri: Uri;
@@ -27,7 +28,7 @@ export class ALApp implements Disposable, BackEndAppInfo {
     private readonly _configWatcher: ObjIdConfigWatcher;
     private readonly _onManifestChanged = new EventEmitter<ALApp>();
     private readonly _onConfigChanged = new EventEmitter<ALApp>();
-    private readonly _packageCachePath: string[];
+    private readonly _packageCachePaths: string[];
     public readonly onManifestChanged = this._onManifestChanged.event;
     public readonly onConfigChanged = this._onConfigChanged.event;
     private _loadAllDependenciesPromise: Promise<ALAppPackage[]> | undefined = undefined;
@@ -43,7 +44,7 @@ export class ALApp implements Disposable, BackEndAppInfo {
         this._name = name;
         this._configUri = Uri.file(path.join(uri.fsPath, CONFIG_FILE_NAME));
         this._config = this.createObjectIdConfig();
-        this._packageCachePath = this.getPackageCachePath();
+        this._packageCachePaths = this.getPackageCachePathsFromConfig();
 
         this._manifestWatcher = new FileWatcher(manifest.uri);
         this._manifestChanged = this._manifestWatcher.onChanged(() => this.onManifestChangedFromWatcher());
@@ -61,7 +62,7 @@ export class ALApp implements Disposable, BackEndAppInfo {
         this._assignmentMonitor = new AssigmentMonitor(uri, this._config.appPoolId || this.hash);
         this.loadAllDependencies();
     }
-    private getPackageCachePath(): string[] {
+    private getPackageCachePathsFromConfig(): string[] {
         const settingsJsonPath = path.join(this.uri.fsPath, ".vscode", "settings.json");
         if (fs.existsSync(settingsJsonPath)) {
             const content = fs.readFileSync(settingsJsonPath).toString() || "{}";
@@ -81,7 +82,7 @@ export class ALApp implements Disposable, BackEndAppInfo {
                 return Array.isArray(packageCachePath) ? packageCachePath : [packageCachePath];
             }
         }
-        return extensions.getExtension("ms-dynamics-smb.al")?.packageJSON.contributes?.configuration?.properties['al.packageCachePath']?.default || ["./.alpackages "]
+        return extensions.getExtension(MSFT_EXTENSION_ID)?.packageJSON.contributes?.configuration?.properties['al.packageCachePath']?.default || ["./.alpackages "]
     }
 
     private createObjectIdConfig(): ObjIdConfig {
@@ -208,25 +209,30 @@ export class ALApp implements Disposable, BackEndAppInfo {
     }
 
     /**
-     * Loads all .app files of the packageCachePaths of this app. In the best case it simply returns these from the workspace cache, but it might also update the cache if necessary.
-     * @returns The .app-packages of the dependencies of this app while making use of a workspace dependency cache.
+     * Loads all .app files of the packageCachePaths of this app. 
+     * In the best case it simply returns these from the workspace cache, but it might also update the cache if necessary.
+     * @returns Infos of the .app-packages of the dependencies of this app while making use of a workspace dependency cache.
      */
     private async loadAllDependencies(): Promise<ALAppPackage[]> {
         if (this._loadAllDependenciesPromise)
             return this._loadAllDependenciesPromise;
-        this._loadAllDependenciesPromise = WorkspaceManager.instance.loadDependencyPackages(this.uri.fsPath, this.packageCachePath);
+        this._loadAllDependenciesPromise = executeWithStopwatchAsync(
+            () => WorkspaceManager.instance.loadDependencyPackages(this),
+            `Start loading dependency packages`
+        );
         this._loadAllDependenciesPromise.then(() => { this._loadAllDependenciesPromise = undefined; });
         return this._loadAllDependenciesPromise;
     }
 
     /**
-     * Returns only the highest version of each dependency of this app.
-     * @returns The json object of the SymbolReference.json file of all apps inside the alPackagesCachePath of this app.
+     * Returns the highest version of each dependency of this app.
+     * @returns the highest version of each dependency of this app.
      */
     public async getDependencies(): Promise<ALAppPackage[]> {
-        const startTime = Date.now();
-        const allAppPackages = await this.loadAllDependencies();
-        output.log(`Dependency Loading: Loading dependencies for ${this.name} took ${Date.now() - startTime} ms.`);
+        const allAppPackages = await executeWithStopwatchAsync(
+            () => this.loadAllDependencies(),
+            `Load dependencies for ${this.name}`
+        );
         const appPackages = allAppPackages.filter(appPackage => appPackage !== undefined) as ALAppPackage[];
 
         const dependencies: ALAppPackage[] = []
@@ -257,10 +263,10 @@ export class ALApp implements Disposable, BackEndAppInfo {
 
     /**
      * Returns the package cache path(s) for this app. If the path is not specified in the app settings or in the workspace settings
-     * an empty array is returned.
+     * the default path is returned.
      */
-    public get packageCachePath(): string[] {
-        return this._packageCachePath;
+    public get packageCachePaths(): string[] {
+        return this._packageCachePaths;
     }
 
     /**

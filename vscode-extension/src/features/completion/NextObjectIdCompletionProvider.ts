@@ -18,6 +18,7 @@ import { InteractiveCompletionItem } from "./InteractiveCompletionItem";
 import { continueWithAssignment, stopAsking, stopSyncing } from "./completionFunctions";
 import { getExtendedId } from "../../lib/functions/getExtendedId";
 import { getDescriptionOfRange } from "../../lib/functions/getDescriptionOfRange";
+import { Config } from "../../lib/Config";
 
 type SymbolInfo = {
     type: string;
@@ -124,10 +125,13 @@ async function getTypeAtPositionRaw(
             if (isField === ";") {
                 context.injectSemicolon = true;
             }
-            if (matches[0].name.toLowerCase().startsWith("tableextension")) {
+            if (Config.instance.storeExtensionValuesOrIdsOnBaseObject && matches[0].name.toLowerCase().startsWith("tableextension")) {
                 const extendedId = await getExtendedId(document.uri, document.getText())
                 if (extendedId) {
                     return `${objectParts[0]}_${extendedId}`;
+                } else {
+                    output.log(`Error: Could not find extended id for ${objectParts[0]} ${objectParts[1]}`);
+                    return null;
                 }
             }
             return `${objectParts[0]}_${objectParts[1]}`;
@@ -144,10 +148,13 @@ async function getTypeAtPositionRaw(
                 if (isValue === ";") {
                     context.injectSemicolon = true;
                 }
-                if (matches[0].name.toLowerCase().startsWith("enumextension")) {
+                if (Config.instance.storeExtensionValuesOrIdsOnBaseObject && matches[0].name.toLowerCase().startsWith("enumextension")) {
                     const extendedId = await getExtendedId(document.uri, document.getText())
                     if (extendedId) {
                         return `${objectParts[0]}_${extendedId}`;
+                    } else {
+                        output.log(`Error: Could not find extended id for ${objectParts[0]} ${objectParts[1]}`);
+                        return null;
                     }
                 }
                 return `${objectParts[0]}_${objectParts[1]}`;

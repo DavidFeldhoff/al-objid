@@ -1,4 +1,4 @@
-import { Disposable, EventEmitter, extensions, Uri, window, workspace, WorkspaceFolder, WorkspaceFoldersChangeEvent } from "vscode";
+import { Disposable, EventEmitter, Uri, window, workspace, WorkspaceFolder, WorkspaceFoldersChangeEvent } from "vscode";
 import { ALApp } from "../lib/ALApp";
 import { PropertyBag } from "../lib/types/PropertyBag";
 import { QuickPickWrapper } from "../lib/QuickPickWrapper";
@@ -8,6 +8,8 @@ import { isAbsolute, join } from "path";
 import { readdirSync } from "fs";
 import { ALAppPackage } from "../lib/types/ALAppPackage";
 import { LogLevel, Output } from "./Output";
+import { Config } from "../lib/Config";
+import { executeWithStopwatchAsync } from "../lib/MeasureTime";
 
 export class WorkspaceManager implements Disposable {
     private static _instance: WorkspaceManager;
@@ -81,11 +83,21 @@ export class WorkspaceManager implements Disposable {
         }
     }
 
-    public async loadDependencyPackages(appBasePath: string, packageCachePaths: string[]): Promise<ALAppPackage[]> {
-        const startTime = Date.now();
+    /**
+     * Returns the dependency packages of the specified app from the workspace dependency cache. 
+     * If it's outdated, it reloads the package directly. 
+     * If it's an entire new dependency package, it also directly loads it.
+     * Loading the dependencies is done by using the SymbolReference.json and NavxManifest.xml file of the dependency package.
+     * @param app App from which the dependencies are to be loaded
+     * @returns Objects of all the .app files in the packageCachePaths of the app
+     */
+    public async loadDependencyPackages(app: ALApp): Promise<ALAppPackage[]> {
+        if (!Config.instance.storeExtensionValuesOrIdsOnBaseObject) { // save time if we don't need to load dependencies
+            return [];
+        }
         const dependencyPackages: Promise<ALAppPackage | undefined>[] = [];
-        for (const packageCachePath of packageCachePaths) {
-            const packageUri = isAbsolute(packageCachePath) ? Uri.file(packageCachePath) : Uri.file(join(appBasePath, packageCachePath));
+        for (const packageCachePath of app.packageCachePaths) {
+            const packageUri = isAbsolute(packageCachePath) ? Uri.file(packageCachePath) : Uri.file(join(app.uri.fsPath, packageCachePath));
             for (const file of readdirSync(packageUri.fsPath, { withFileTypes: true })) {
                 if (file.isFile() && file.name.endsWith(".app")) {
                     const fileUri = Uri.file(join(packageUri.fsPath, file.name));
@@ -94,21 +106,30 @@ export class WorkspaceManager implements Disposable {
                 }
             }
         }
-        const result: Promise<ALAppPackage[]> = Promise.all(dependencyPackages).then(results => {
+        return Promise.all(dependencyPackages).then(results => {
             return results.filter(result => result !== undefined) as ALAppPackage[];
         });
-        const elapsed = Date.now() - startTime;
-        Output.instance.log(`Dependency Loading: Started loading ${dependencyPackages.length} dependency packages in ${elapsed}ms`, LogLevel.Verbose);
-        return result;
     }
+
+    /**
+     * Starts loading the dependency package of the specified dependency file and returns the promise.
+     * @param dependencyFileFullPath Path of the dependency file to be loaded
+     * @returns Promise of the loaded dependency package
+     */
     private async loadDependencyPackage(dependencyFileFullPath: Uri) {
-        const newDependencyPackage = ALAppPackage.tryCreate(dependencyFileFullPath.fsPath);
-        const startTime = Date.now();
-        newDependencyPackage.then(() => { Output.instance.log(`Dependency Loading: Loaded dependency package ${dependencyFileFullPath.fsPath} in ${Date.now() - startTime}ms`, LogLevel.Verbose); });
+        const newDependencyPackage = executeWithStopwatchAsync(
+            () => ALAppPackage.tryCreate(dependencyFileFullPath.fsPath),
+            `Load dependency package ${dependencyFileFullPath.fsPath}`
+        );
         this._dependencyPackages.set(dependencyFileFullPath, newDependencyPackage);
         return newDependencyPackage;
     }
 
+    /**
+     * Returns the dependency package of the specified dependency file from the workspace dependency cache or reloads it if it's outdated.
+     * @param uri The Uri of the dependency package to get
+     * @returns The dependency package of the specified dependency file from the workspace dependency cache or reloads it if it's outdated
+     */
     public async getDependencyPackage(uri: Uri) {
         return (await this._dependencyPackages.get(uri))?.reloadIfOutdated();
     }

@@ -7,6 +7,7 @@ export const APP_FILE_NAME = "app.json";
 export const CONFIG_FILE_NAME = ".objidconfig";
 export const GIT_HEAD = ".git/HEAD";
 export const NINJA_URI_SCHEME = "ninja";
+export const MSFT_EXTENSION_ID = "ms-dynamics-smb.al";
 
 export const URLS = {
     AUTHORIZATION_LEARN: "https://github.com/vjekob/al-objid/tree/master/doc/Authorization.md",

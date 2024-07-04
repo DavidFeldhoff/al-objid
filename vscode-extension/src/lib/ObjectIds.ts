@@ -5,6 +5,8 @@ import { ALObject } from "@vjeko.com/al-parser-types-ninja";
 import { ParserConnector } from "../features/ParserConnector";
 import { getExtendedId } from "./functions/getExtendedId";
 import { readFileSync } from "fs";
+import { Config } from "./Config";
+import { output } from "../features/Output";
 
 export async function getWorkspaceFolderFiles(uri: Uri): Promise<Uri[]> {
     let folderPath: string = uri.fsPath;
@@ -27,9 +29,15 @@ export async function updateActualConsumption(objects: ALObject[], consumption: 
         consumption[type].push(id);
 
         let typeAndId = `${type}_${id}`;
-        if ((object.fields || object.values) && ["tableextension", "enumextension"].includes(type.toLowerCase())) {
-            const extendedId = await getExtendedId(Uri.file(object.path), readFileSync(object.path, { encoding: 'utf8' }));
-            typeAndId = `${type}_${extendedId}`;
+        if (Config.instance.storeExtensionValuesOrIdsOnBaseObject) {
+            if ((object.fields || object.values) && ["tableextension", "enumextension"].includes(type.toLowerCase())) {
+                const extendedId = await getExtendedId(Uri.file(object.path), readFileSync(object.path, { encoding: 'utf8' }));
+                if (!extendedId) {
+                    output.log(`[Update Consumption] Error: Unable to update consumption for ${type} ${id} ${object.name} as the base object wasn't found.`);
+                    continue;
+                }
+                typeAndId = `${type}_${extendedId}`;
+            }
         }
         if (object.fields) {
             consumption[typeAndId] = [];

@@ -4,6 +4,8 @@ import * as xml2js from "xml2js";
 import { NavxManifest } from "./NavxManifest";
 import { SymbolReferenceRoot } from "./SymbolReferenceSchema";
 import JSZip = require("jszip");
+import { output } from "../../features/Output";
+import { stringify } from "comment-json";
 
 export class ALAppPackage {
     private _manifest!: NavxManifest;
@@ -61,8 +63,8 @@ export class ALAppPackage {
             let errors: ParseError[] = [];
             const symbolReference = parse(content, errors, { allowEmptyContent: true, allowTrailingComma: true, disallowComments: false }) as SymbolReferenceRoot;
             if (errors.length > 0) {
-                console.log(`Json parse of ${dependencyFileFullPath} successful, but with errors: ${errors.length}.`);
-                errors.forEach(error => console.log(error));
+                output.log(`Json parse of ${dependencyFileFullPath} successful, but with errors: ${errors.length}.`);
+                errors.forEach(error => output.log(stringify(error)));
             }
             return new ALAppPackage(manifest, symbolReference, dependencyFileFullPath, statSync(dependencyFileFullPath).mtime);
         }
