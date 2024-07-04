@@ -16,6 +16,24 @@ Work is in progress on two upcoming features, both of which heavily depend on tr
     can join the pool, you can remove apps from pool centrally, and you can make sure that only apps that are actually
     a part of the pool to assign object IDs to that pool.
 
+## [2.13.0] - 2024-07-04
+
+### Added
+
+- New setting `fieldAndValueIdsStayInsideObjectRange` which makes sure that if you've numbers per object range, e.g. per tableextension, that the field id's stay inside that range as well to avoid conflicts with others.
+- New setting `storeExtensionValuesOrIdsOnBaseObject`: Reserved object and field numbers are then stored on base table/enum level. Currently it's done incorrectly on tableextension or enumextension level which might lead to conflicts if you've multiple extensions on that same base table/enum. We strongly recommend to activate this setting, but then make sure to update your consumption afterwards e.g. using the `Ninja: Automatically Synchronize Object IDs for Entire Workspace` command. By activating this setting, the dependencies are loaded using the SymbolReference.json to find out in a fast way the object name -> object id relation. The performance impact should not be noticable.
+- Getting the consumption is now done based on app *or pool* level. This makes the `Range Explorer` and `Assignment Explorer` View accessible for App Pools as well.
+
+### Changed
+
+- Enumextensions do not get the range from 1-4999 proposed anymore. This practice most likely would result in conflicts sooner or later. Stay inside your ranges instead.
+
+### Fixed
+
+- `Range Explorer` View could not deal with multiple object ranges without a description.
+- Multiple Object ranges without a description proposed multiple entries as next Ids. Now it only shows the first available one as if the ranges would be one logical range.
+- An error was shown when reserving an enum value in the range from 1-49999 saying that "no more objects" are available
+
 ## [2.12.0] - 2023-09-10
 
 ### Added
