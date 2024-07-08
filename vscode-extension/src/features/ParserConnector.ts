@@ -4,6 +4,10 @@ import { ALObject } from "@vjeko.com/al-parser-types-ninja";
 import { LogLevel, output } from "./Output";
 import { CheckType } from "@vjeko.com/al-parser-ninja/dist/CheckType";
 import { ALRange } from "../lib/types/ALRange";
+import { readFileSync } from "fs";
+import { ALObjectNamespace } from "../lib/types/ALObjectNamespace";
+import { getNamespace } from "../lib/functions/getNamespace";
+import { executeWithStopwatchAsync } from "../lib/MeasureTime";
 
 export interface NextIdContext {
     injectSemicolon: boolean;
@@ -25,17 +29,39 @@ export class ParserConnector implements Disposable {
         return this._initialization;
     }
 
-    public async parse(uris: Uri[]): Promise<ALObject[]> {
+    public async parse(uris: Uri[], tempFixFQN?: boolean): Promise<ALObjectNamespace[]> {
         output.log(`[AL Parser] Parsing ${uris.length} file(s)`);
         await this.initialization;
         const files = uris.map(uri => uri.fsPath);
-        const objects = await ALParserNinja.parse(files);
+        const objects = await ALParserNinja.parse(files) as any as ALObjectNamespace[];
         objects
             .filter(o => o.error)
             .forEach(o =>
                 output.log(`[AL Parser] Error parsing ${o.name} (${o.path}): ${(o as any).error}`, LogLevel.Info)
             );
+
+        if (tempFixFQN)
+            for (const object of objects.filter(o => o.extends !== undefined)) {
+                const result = await this.getExtendInfos(object.type, object.path);
+                if (result) {
+                    ({ extends: object.extends, extendsNamespace: object.extendsNamespace } = result);
+                }
+            }
+
         return objects;
+    }
+
+    public async getExtendInfos(extensionType: string, path: string, lines: string[] = readFileSync(path, 'utf8').split('\n')): Promise<{ extends: string; extendsNamespace: string } | undefined> {
+        if (!["tableextension", "enumextension"].includes(extensionType.toLowerCase()))
+            return undefined;
+        const regex = new RegExp(`${extensionType} \\d+ ("[^"]+"|\\w+) extends (?:(?<namespace>(?:[^".\\n]+\\.)*[^".\\n]+)\\.)?(?<objectname>"[^"]+"|\\w+)`, 'i');
+        for (let lineNo = 0; lineNo < lines.length; lineNo++) {
+            const match = lines[lineNo].match(regex);
+            if (match && match.index !== undefined && match.groups?.objectname) {
+                let namespace = match.groups?.namespace || await executeWithStopwatchAsync(() => getNamespace(Uri.file(path), new Position(lineNo, match.index! + match[0].length - 1)), "GetNamespace");
+                return { extends: match.groups?.objectname, extendsNamespace: namespace };
+            }
+        }
     }
 
     public async checkField(

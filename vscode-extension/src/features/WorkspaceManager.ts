@@ -5,9 +5,8 @@ import { QuickPickWrapper } from "../lib/QuickPickWrapper";
 import { UI } from "../lib/UI";
 import { ALFoldersChangedEvent } from "../lib/types/ALFoldersChangedEvent";
 import { isAbsolute, join } from "path";
-import { readdirSync } from "fs";
+import { existsSync, readdirSync } from "fs";
 import { ALAppPackage } from "../lib/types/ALAppPackage";
-import { LogLevel, Output } from "./Output";
 import { Config } from "../lib/Config";
 import { executeWithStopwatchAsync } from "../lib/MeasureTime";
 
@@ -98,13 +97,14 @@ export class WorkspaceManager implements Disposable {
         const dependencyPackages: Promise<ALAppPackage | undefined>[] = [];
         for (const packageCachePath of app.packageCachePaths) {
             const packageUri = isAbsolute(packageCachePath) ? Uri.file(packageCachePath) : Uri.file(join(app.uri.fsPath, packageCachePath));
-            for (const file of readdirSync(packageUri.fsPath, { withFileTypes: true })) {
-                if (file.isFile() && file.name.endsWith(".app")) {
-                    const fileUri = Uri.file(join(packageUri.fsPath, file.name));
-                    const dependencyPackage = this._dependencyPackages.has(fileUri) ? this.getDependencyPackage(fileUri)! : this.loadDependencyPackage(fileUri);
-                    dependencyPackages.push(dependencyPackage);
+            if (existsSync(packageUri.fsPath))
+                for (const file of readdirSync(packageUri.fsPath, { withFileTypes: true })) {
+                    if (file.isFile() && file.name.endsWith(".app")) {
+                        const fileUri = Uri.file(join(packageUri.fsPath, file.name));
+                        const dependencyPackage = this._dependencyPackages.has(fileUri) ? this.getDependencyPackage(fileUri)! : this.loadDependencyPackage(fileUri);
+                        dependencyPackages.push(dependencyPackage);
+                    }
                 }
-            }
         }
         return Promise.all(dependencyPackages).then(results => {
             return results.filter(result => result !== undefined) as ALAppPackage[];

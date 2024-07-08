@@ -30,6 +30,7 @@ export enum CodeCommand {
     MarkdownShowPreview = "markdown.showPreview",
     ExecuteDocumentSymbolProvider = "vscode.executeDocumentSymbolProvider",
     ExecuteFormatProvider = "vscode.executeFormatDocumentProvider",
+    ExecuteHoverProvider = "vscode.executeHoverProvider"
 }
 
 export enum NinjaCommand {
