@@ -19,6 +19,7 @@ export class AssigmentMonitor implements Disposable {
     readonly _hash: string;
     readonly _watcher: FileSystemWatcher;
     readonly _disposables: Disposable[] = [];
+    private _refreshing: boolean = false;
 
     readonly _pending = {
         changed: [] as Uri[],
@@ -115,6 +116,9 @@ export class AssigmentMonitor implements Disposable {
     }
 
     private async refreshObjects() {
+        if (this._refreshing)
+            return;
+        this._refreshing = true;
         output.log("Refreshing object ID consumption after change in workspace AL files", LogLevel.Verbose);
         const uris = await this.getPendingUris();
         const objects = await getObjectDefinitions(uris);
@@ -124,10 +128,11 @@ export class AssigmentMonitor implements Disposable {
         }
         this._objects.push(...objects);
         this.refresh();
+        this._refreshing = false;
     }
 
-    private refreshConsumption(consumption: ConsumptionDataOfObject) {
-        this.refreshObjects();
+    private async refreshConsumption(consumption: ConsumptionDataOfObject) {
+        await this.refreshObjects();
         this._consumption = consumption;
         this.refresh();
     }
