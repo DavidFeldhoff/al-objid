@@ -1,5 +1,5 @@
 import { ALObjectType } from "./ALObjectType";
 
-export type ConsumptionData = {
+export type ConsumptionDataOfObject = {
     [key in ALObjectType]: number[];
 };

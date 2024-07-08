@@ -1,7 +1,7 @@
 import { AppPoolAwareNode } from "./AppPoolAwareNode";
 import { ALApp } from "../../../../lib/ALApp";
 import { ALRange } from "../../../../lib/types/ALRange";
-import { ConsumptionData } from "../../../../lib/types/ConsumptionData";
+import { ConsumptionDataOfObject } from "../../../../lib/types/ConsumptionDataOfObject";
 import { NinjaALRange } from "../../../../lib/types/NinjaALRange";
 import { PropertyBag } from "../../../../lib/types/PropertyBag";
 import { ConsumptionCache } from "../../../ConsumptionCache";
@@ -24,7 +24,7 @@ export class AppPoolExplorerRootNode extends RootNode implements AppPoolAwareNod
     private readonly _objectRanges: PropertyBag<NinjaALRange[]>;
     private readonly _objectTypesSpecified: string[];
     private readonly _subscription: Disposable;
-    private _consumption: ConsumptionData;
+    private _consumption: ConsumptionDataOfObject;
     protected _uriAuthority: string;
     protected _label: string;
     protected _description: string;
@@ -39,7 +39,7 @@ export class AppPoolExplorerRootNode extends RootNode implements AppPoolAwareNod
         this._label = appPoolId.substring(0, 8); // TODO Change
         this._description = "Simple pool"; // TODO Change
         this._tooltip = "";
-        this._consumption = ConsumptionCache.instance.getConsumption(appPoolId) || {};
+        this._consumption = ConsumptionCache.instance.getObjectConsumption(appPoolId) || {};
 
         this._physicalRanges = this.getPhysicalRanges(apps);
         this._logicalRanges = this.getLogicalRanges(apps);
@@ -48,7 +48,7 @@ export class AppPoolExplorerRootNode extends RootNode implements AppPoolAwareNod
         this._objectTypesSpecified = this.getObjectTypesSpecified(apps);
 
         this._subscription = ConsumptionCache.instance.onConsumptionUpdate(appPoolId, () => {
-            this._consumption = ConsumptionCache.instance.getConsumption(appPoolId) || {};
+            this._consumption = ConsumptionCache.instance.getObjectConsumption(appPoolId) || {};
             this._view.update(this);
         });
     }
@@ -140,7 +140,7 @@ export class AppPoolExplorerRootNode extends RootNode implements AppPoolAwareNod
         return this._appPoolId;
     }
 
-    public get consumption(): ConsumptionData {
+    public get consumption(): ConsumptionDataOfObject {
         return this._consumption;
     }
 

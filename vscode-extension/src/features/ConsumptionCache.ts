@@ -1,19 +1,20 @@
-import { Disposable, Event, EventEmitter } from "vscode";
-import { ConsumptionData } from "../lib/types/ConsumptionData";
+import { Disposable, EventEmitter } from "vscode";
+import { ConsumptionDataOfObject } from "../lib/types/ConsumptionDataOfObject";
 import { ALObjectType } from "../lib/types/ALObjectType";
 import { PropertyBag } from "../lib/types/PropertyBag";
 import { ConsumptionWarnings } from "./ConsumptionWarnings";
+import { ConsumptionDataOfField } from "../lib/types/ConsumptionDataOfFields";
 
 export interface ConsumptionEventInfo {
     appId: string;
-    consumption: ConsumptionData;
+    consumption: ConsumptionDataOfObject;
 }
 
 export class ConsumptionCache implements Disposable {
     //#region Singleton
     private static _instance: ConsumptionCache;
 
-    private constructor() {}
+    private constructor() { }
 
     public static get instance(): ConsumptionCache {
         return this._instance || (this._instance = new ConsumptionCache());
@@ -21,11 +22,12 @@ export class ConsumptionCache implements Disposable {
     //#endregion
 
     private _disposed: boolean = false;
-    private _cache: PropertyBag<ConsumptionData> = {};
+    private _cacheOfObjects: PropertyBag<ConsumptionDataOfObject> = {};
+    private _cacheOfFields: PropertyBag<ConsumptionDataOfField> = {};
     private readonly _onConsumptionUpdateEmitter = new EventEmitter<ConsumptionEventInfo>();
     private readonly _onConsumptionUpdateEvent = this._onConsumptionUpdateEmitter.event;
 
-    public onConsumptionUpdate(appId: string, onUpdate: (consumption: ConsumptionData) => void): Disposable {
+    public onConsumptionUpdate(appId: string, onUpdate: (consumption: ConsumptionDataOfObject) => void): Disposable {
         return this._onConsumptionUpdateEvent(e => {
             if (e.appId === appId) {
                 onUpdate(e.consumption);
@@ -33,25 +35,38 @@ export class ConsumptionCache implements Disposable {
         });
     }
 
-    public updateConsumption(appId: string, consumption: ConsumptionData): boolean {
-        const keys = Object.keys(consumption);
-        for (let key of keys) {
-            if (!Object.values<string>(ALObjectType).includes(key)) {
-                delete (consumption as any)[key];
-            }
+    public updateConsumption(appId: string, consumption: any): boolean {
+        const consumptionObjectIds: ConsumptionDataOfObject = {} as any as ConsumptionDataOfObject;
+        Object.keys(consumption)
+            .filter(key => Object.values<string>(ALObjectType).includes(key))
+            .forEach(key => (consumptionObjectIds as any)[key] = consumption[key]);
+
+        const consumptionFieldIds: ConsumptionDataOfField = {};
+        Object.keys(consumption)
+            .filter(key => !Object.values<string>(ALObjectType).includes(key))
+            .forEach(key => consumptionFieldIds[key] = consumption[key]);
+
+        let objectIdsUpdated = JSON.stringify(this._cacheOfObjects[appId]) !== JSON.stringify(consumptionObjectIds);
+        if (objectIdsUpdated) {
+            this._cacheOfObjects[appId] = consumptionObjectIds;
+            ConsumptionWarnings.instance.checkRemainingIds(appId, consumptionObjectIds);
+            this._onConsumptionUpdateEmitter.fire({ appId, consumption: consumptionObjectIds });
         }
-        let updated = JSON.stringify(this._cache[appId]) !== JSON.stringify(consumption);
-        if (updated) {
-            this._cache[appId] = consumption;
-            ConsumptionWarnings.instance.checkRemainingIds(appId, consumption);
-            this._onConsumptionUpdateEmitter.fire({ appId, consumption });
+        let fieldIdsUpdated = JSON.stringify(this._cacheOfFields[appId]) !== JSON.stringify(consumptionFieldIds);
+        if (fieldIdsUpdated) {
+            this._cacheOfFields[appId] = consumptionFieldIds;
+            // TODO: Handle warning for field ids
         }
-        return updated;
+        return objectIdsUpdated || fieldIdsUpdated;
     }
 
-    public getConsumption(appId: string): ConsumptionData {
-        return this._cache[appId];
+    public getObjectConsumption(appId: string): ConsumptionDataOfObject {
+        return this._cacheOfObjects[appId];
     }
+    public getFieldConsumption(appId: string): ConsumptionDataOfField {
+        return this._cacheOfFields[appId];
+    }
+
 
     dispose() {
         if (this._disposed) {

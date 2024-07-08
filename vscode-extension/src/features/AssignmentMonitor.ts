@@ -5,7 +5,7 @@ import { LogLevel, output } from "./Output";
 import { ALObject } from "@vjeko.com/al-parser-types-ninja";
 import { ConsumptionCache } from "./ConsumptionCache";
 import { consumptionToObjects } from "../lib/functions/consumptionToObjects";
-import { ConsumptionData } from "../lib/types/ConsumptionData";
+import { ConsumptionDataOfObject } from "../lib/types/ConsumptionDataOfObject";
 import { PropertyBag } from "../lib/types/PropertyBag";
 import { EventEmitter } from "vscode";
 import { AssignedALObject } from "../lib/types/AssignedALObject";
@@ -28,7 +28,7 @@ export class AssigmentMonitor implements Disposable {
 
     _timeout: NodeJS.Timeout | undefined;
     _objects: ALObject[] | undefined;
-    _consumption: ConsumptionData | undefined;
+    _consumption: ConsumptionDataOfObject | undefined;
     _diagnosedUris: Uri[] = [];
     _disposed: boolean = false;
 
@@ -126,7 +126,7 @@ export class AssigmentMonitor implements Disposable {
         this.refresh();
     }
 
-    private refreshConsumption(consumption: ConsumptionData) {
+    private refreshConsumption(consumption: ConsumptionDataOfObject) {
         this.refreshObjects();
         this._consumption = consumption;
         this.refresh();

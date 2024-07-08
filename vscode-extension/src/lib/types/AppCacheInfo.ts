@@ -1,8 +1,8 @@
 import { EventLogEntry } from "./EventLogEntry";
 import { ALRange } from "./ALRange";
-import { ConsumptionData } from "./ConsumptionData";
+import { ConsumptionDataOfObject } from "./ConsumptionDataOfObject";
 
 export type AppCacheInfo = {
     _ranges: ALRange[];
     _log: EventLogEntry[];
-} & ConsumptionData;
+} & ConsumptionDataOfObject;

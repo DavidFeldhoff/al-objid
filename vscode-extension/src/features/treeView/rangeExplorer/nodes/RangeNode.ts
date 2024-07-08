@@ -2,7 +2,7 @@ import { ThemeIcon, TreeItem, TreeItemCollapsibleState, Uri } from "vscode";
 import { NinjaIcon } from "../../../../lib/NinjaIcon";
 import { ALObjectType } from "../../../../lib/types/ALObjectType";
 import { ALRange } from "../../../../lib/types/ALRange";
-import { ConsumptionData } from "../../../../lib/types/ConsumptionData";
+import { ConsumptionDataOfObject } from "../../../../lib/types/ConsumptionDataOfObject";
 import { NinjaALRange } from "../../../../lib/types/NinjaALRange";
 import { ConsumptionCache } from "../../../ConsumptionCache";
 import { AppAwareNode, AppAwareDescendantNode } from "../../AppAwareNode";
@@ -24,7 +24,7 @@ export abstract class RangeNode<T extends ALRange> extends AppAwareDescendantNod
     protected override _iconPath: string | Uri | { light: string | Uri; dark: string | Uri } | ThemeIcon =
         NinjaIcon["arrow-both"];
     protected override _collapsibleState = TreeItemCollapsibleState.Expanded;
-    protected readonly _consumption: ConsumptionData;
+    protected readonly _consumption: ConsumptionDataOfObject;
 
     protected abstract _includeLogicalNameInDescription: boolean;
     protected abstract _includeLogicalNameInLabel: boolean;
@@ -36,7 +36,7 @@ export abstract class RangeNode<T extends ALRange> extends AppAwareDescendantNod
         this._tooltip = `From ${range.from} to ${range.to}`;
         this._uriPathPart = `${range.from}-${range.to}`;
         // Consumptions are done based on pool or app hash, so appId (hash or pool hash) is the right choice here
-        this._consumption = ConsumptionCache.instance.getConsumption(this.app.appId) || {};
+        this._consumption = ConsumptionCache.instance.getObjectConsumption(this.app.appId) || {};
         this._childNodes = this.calculateChildren();
     }
 

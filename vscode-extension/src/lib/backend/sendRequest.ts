@@ -1,6 +1,5 @@
 import { NotificationsFromLog } from "../../features/NotificationsFromLog";
 import { output } from "../../features/Output";
-import { ConsumptionData } from "../types/ConsumptionData";
 import { EventLogEntry } from "../types/EventLogEntry";
 import { Config } from "../Config";
 import { HttpMethod, Https } from "./Https";
@@ -82,7 +81,7 @@ export async function sendRequest<T>(
                 const app = WorkspaceManager.instance.getALAppFromHash(appId);
                 if (app) {
                     NotificationsFromLog.instance.updateLog(appId, _log as EventLogEntry[], app.manifest.name);
-                    ConsumptionCache.instance.updateConsumption(appId, consumptions as ConsumptionData);
+                    ConsumptionCache.instance.updateConsumption(appId, consumptions);
                 }
             }
         } catch (error: any) {

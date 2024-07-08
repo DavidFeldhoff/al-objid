@@ -5,7 +5,7 @@ import { WorkspaceManager } from "../features/WorkspaceManager";
 import { Telemetry } from "../lib/Telemetry";
 import { ALObjectType } from "../lib/types/ALObjectType";
 import { NinjaCommand } from "./commands";
-import { ConsumptionData } from "../lib/types/ConsumptionData";
+import { ConsumptionDataOfObject } from "../lib/types/ConsumptionDataOfObject";
 import { AppCommandContext } from "./contexts/AppCommandContext";
 import { ALRange } from "../lib/types/ALRange";
 import { PropertyBag } from "../lib/types/PropertyBag";
@@ -195,7 +195,7 @@ function consumptionToJson(consumption: ObjectConsumption[], app: ALApp): string
     return JSON.stringify(extendedConsumption, null, 2);
 }
 
-function generateConsumptionReport(consumption: ConsumptionData): ObjectConsumption[] {
+function generateConsumptionReport(consumption: ConsumptionDataOfObject): ObjectConsumption[] {
     const report: ObjectConsumption[] = [];
     for (let key in consumption) {
         const objectType = key as ALObjectType;
@@ -296,7 +296,7 @@ export async function reportConsumption(context?: AppCommandContext) {
         return;
     }
 
-    const consumption = ConsumptionCache.instance.getConsumption(app.hash);
+    const consumption = ConsumptionCache.instance.getObjectConsumption(app.hash);
     const report = generateConsumptionReport(consumption);
     await processReport(report, app);
 }
