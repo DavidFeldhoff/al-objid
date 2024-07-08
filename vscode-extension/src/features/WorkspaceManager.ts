@@ -4,8 +4,6 @@ import { PropertyBag } from "../lib/types/PropertyBag";
 import { QuickPickWrapper } from "../lib/QuickPickWrapper";
 import { UI } from "../lib/UI";
 import { ALFoldersChangedEvent } from "../lib/types/ALFoldersChangedEvent";
-import { isAbsolute, join } from "path";
-import { existsSync, readdirSync } from "fs";
 import { ALAppPackage } from "../lib/types/ALAppPackage";
 import { Config } from "../lib/Config";
 import { executeWithStopwatchAsync } from "../lib/MeasureTime";
@@ -16,7 +14,7 @@ export class WorkspaceManager implements Disposable {
     private readonly _appHashMap: PropertyBag<ALApp> = {};
     private readonly _onDidChangeALFolders = new EventEmitter<ALFoldersChangedEvent>();
     public readonly onDidChangeALFolders = this._onDidChangeALFolders.event;
-    private _dependencyPackages: Map<Uri, Promise<ALAppPackage | undefined>> = new Map(); // Map of dependency packages to workspace apps as al.packageCachePath might have shared paths and files should only be loaded once then
+    private _dependencyPackages: Map<string, Promise<ALAppPackage | undefined>> = new Map(); // Map of dependency packages to workspace apps as al.packageCachePath might have shared paths and files should only be loaded once then
     private _apps: ALApp[] = [];
     private _folders: WorkspaceFolder[] = [];
     private _disposed = false;
@@ -95,16 +93,11 @@ export class WorkspaceManager implements Disposable {
             return [];
         }
         const dependencyPackages: Promise<ALAppPackage | undefined>[] = [];
-        for (const packageCachePath of app.packageCachePaths) {
-            const packageUri = isAbsolute(packageCachePath) ? Uri.file(packageCachePath) : Uri.file(join(app.uri.fsPath, packageCachePath));
-            if (existsSync(packageUri.fsPath))
-                for (const file of readdirSync(packageUri.fsPath, { withFileTypes: true })) {
-                    if (file.isFile() && file.name.endsWith(".app")) {
-                        const fileUri = Uri.file(join(packageUri.fsPath, file.name));
-                        const dependencyPackage = this._dependencyPackages.has(fileUri) ? this.getDependencyPackage(fileUri)! : this.loadDependencyPackage(fileUri);
-                        dependencyPackages.push(dependencyPackage);
-                    }
-                }
+        for (const dependencyPackageUri of app.dependencyPackageUris) {
+            const dependencyPackage = this._dependencyPackages.has(dependencyPackageUri.fsPath) ?
+                this.getDependencyPackage(dependencyPackageUri)! :
+                this.loadDependencyPackage(dependencyPackageUri);
+            dependencyPackages.push(dependencyPackage);
         }
         return Promise.all(dependencyPackages).then(results => {
             return results.filter(result => result !== undefined) as ALAppPackage[];
@@ -121,7 +114,7 @@ export class WorkspaceManager implements Disposable {
             () => ALAppPackage.tryCreate(dependencyFileFullPath.fsPath),
             `Load dependency package ${dependencyFileFullPath.fsPath}`
         );
-        this._dependencyPackages.set(dependencyFileFullPath, newDependencyPackage);
+        this._dependencyPackages.set(dependencyFileFullPath.fsPath, newDependencyPackage);
         return newDependencyPackage;
     }
 
@@ -131,7 +124,7 @@ export class WorkspaceManager implements Disposable {
      * @returns The dependency package of the specified dependency file from the workspace dependency cache or reloads it if it's outdated
      */
     public async getDependencyPackage(uri: Uri) {
-        return (await this._dependencyPackages.get(uri))?.reloadIfOutdated();
+        return (await this._dependencyPackages.get(uri.fsPath))?.reloadIfOutdated();
     }
 
     private async pickFolderOrFolders(multi: boolean, description?: string): Promise<ALApp[] | ALApp | undefined> {
