@@ -2,16 +2,18 @@ import { readFileSync, statSync } from "fs";
 import { ParseError, parse } from "jsonc-parser";
 import * as xml2js from "xml2js";
 import { NavxManifest } from "./NavxManifest";
-import { SymbolReferenceRoot } from "./SymbolReferenceSchema";
+import { SymbolReferenceNamespace, SymbolReferenceObject, SymbolReferenceRoot } from "./SymbolReferenceSchema";
 import JSZip = require("jszip");
 import { output } from "../../features/Output";
 import { stringify } from "comment-json";
+import { ALObjectType } from "@vjeko.com/al-parser-types-ninja";
 
 export class ALAppPackage {
     private _manifest!: NavxManifest;
     private _symbolReference!: SymbolReferenceRoot;
     private _fsPath!: string;
     private _fileLastModified!: Date
+    private _flattenedCache: { type: ALObjectType, id: number, name: string, namespace: string }[] = [];
     private constructor(manifest: NavxManifest, symbolReferenceSchema: SymbolReferenceRoot, fsPath: string, fileLastModified: Date) {
         this.assignProperties(manifest, symbolReferenceSchema, fsPath, fileLastModified);
     }
@@ -20,6 +22,7 @@ export class ALAppPackage {
         this._symbolReference = symbolReference;
         this._fsPath = fsPath;
         this._fileLastModified = fileLastModified;
+        this._flattenedCache = [];
     }
     public get manifest() {
         return this._manifest;
@@ -84,5 +87,95 @@ export class ALAppPackage {
 
 
         return manifest;
+    }
+    public flattenDependencies(objectsOfInterest: ALObjectType[]): { type: ALObjectType, id: number, name: string, namespace: string }[] {
+        const cachedResult = this._flattenedCache.filter(obj => objectsOfInterest.includes(obj.type));
+        const uncachedObjectsOfInterest = objectsOfInterest.filter(obj => !this._flattenedCache.some(cached => cached.type === obj));
+        let objectsOfInterest2: string[] = uncachedObjectsOfInterest.map(obj => this.objectTypeToSymbolReferenceType(obj));
+        const uncachedResults = this.flattenDependenciesImpl(this.symbolReference, "", objectsOfInterest2);
+        this._flattenedCache.push(...uncachedResults);
+        return [...cachedResult, ...uncachedResults];
+    }
+    private flattenDependenciesImpl(symbolReference: SymbolReferenceRoot | SymbolReferenceNamespace, currentNamespace: string, objectsOfInterest: string[]): { type: ALObjectType, id: number, name: string, namespace: string }[] {
+        const objects = [];
+        for (const key of Object.keys(symbolReference)) {
+            if (objectsOfInterest.includes(key)) {
+                const objs = (symbolReference as unknown as unknown[])[key as keyof unknown[]] as SymbolReferenceObject[];
+                objs.forEach(obj => {
+                    const type = this.symbolReferenceTypeToObjectType(key)
+                    if (type)
+                        objects.push({ type, id: obj.Id, name: obj.Name, namespace: currentNamespace })
+                })
+            }
+        }
+        const namespaces = symbolReference.Namespaces || [];
+        for (const namespace of namespaces) {
+            objects.push(...this.flattenDependenciesImpl(namespace, `${currentNamespace === "" ? "" : `${currentNamespace}.`}${namespace.Name}`, objectsOfInterest));
+        }
+        return objects;
+    }
+    private objectTypeToSymbolReferenceType(alObjectType: ALObjectType) {
+        switch (alObjectType) {
+            case ALObjectType.table:
+                return "Tables";
+            case ALObjectType.codeunit:
+                return "Codeunits";
+            case ALObjectType.page:
+                return "Pages";
+            case ALObjectType.report:
+                return "Reports";
+            case ALObjectType.xmlport:
+                return "XmlPorts";
+            case ALObjectType.query:
+                return "Queries";
+            case ALObjectType.controladdin:
+                return "ControlAddIns";
+            case ALObjectType.enum:
+                return "EnumTypes";
+            case ALObjectType.dotnet:
+                return "DotNetPackages";
+            case ALObjectType.interface:
+                return "Interfaces";
+            case ALObjectType.permissionset:
+                return "PermissionSets";
+            case ALObjectType.permissionsetextension:
+                return "PermissionSetExtensions";
+            case ALObjectType.reportextension:
+                return "ReportExtensions";
+            default:
+                return "";
+        }
+    }
+    private symbolReferenceTypeToObjectType(symbolReferenceTyp: string): ALObjectType | undefined {
+        switch (symbolReferenceTyp) {
+            case "Tables":
+                return ALObjectType.table;
+            case "Codeunits":
+                return ALObjectType.codeunit;
+            case "Pages":
+                return ALObjectType.page;
+            case "Reports":
+                return ALObjectType.report;
+            case "XmlPorts":
+                return ALObjectType.xmlport;
+            case "Queries":
+                return ALObjectType.query;
+            case "ControlAddIns":
+                return ALObjectType.controladdin;
+            case "EnumTypes":
+                return ALObjectType.enum;
+            case "DotNetPackages":
+                return ALObjectType.dotnet;
+            case "Interfaces":
+                return ALObjectType.interface;
+            case "PermissionSets":
+                return ALObjectType.permissionset;
+            case "PermissionSetExtensions":
+                return ALObjectType.permissionsetextension;
+            case "ReportExtensions":
+                return ALObjectType.reportextension;
+            default:
+                return undefined;
+        }
     }
 }

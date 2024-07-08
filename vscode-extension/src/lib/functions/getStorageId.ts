@@ -6,6 +6,7 @@ import { ALObject } from "@vjeko.com/al-parser-types-ninja";
 import { WorkspaceManager } from "../../features/WorkspaceManager";
 import { dirname } from "path";
 import { SymbolReferenceNamespace, SymbolReferenceObject, SymbolReferenceRoot } from "../types/SymbolReferenceSchema";
+import { ALObjectNamespace } from "../types/ALObjectNamespace";
 
 /**
  * Returns the storage Id for the ninja backend. 
@@ -56,7 +57,7 @@ async function getFinalParameters(arg1: string | ALObject, id?: number, document
         object.id = alObject.id;
         if ('extendsNamespace' in alObject) {
             object.extends = alObject.extends;
-            object.extendsNamespace = alObject.extendsNamespace as string;
+            object.extendsNamespace = (alObject as ALObjectNamespace).extendsNamespace;
         } else {
             // temporary fix as the parser does not return the right extended object name and namespace
             const extendInfos = await ParserConnector.instance.getExtendInfos(alObject.type, alObject.path)
@@ -118,14 +119,14 @@ async function getExtendedId(extensionObjectType: string, baseObjectName: string
 }
 
 function findBaseObject(symbolReferenceRoot: SymbolReferenceRoot, baseObjectType: string, baseObjectName: string, baseObjectNamespace: string): { name: string, id: number, namespace: string } | undefined {
-    const namespaceParts = baseObjectNamespace.split('.');
+    const namespaceParts = baseObjectNamespace.split('.').filter(part => part !== "");
     output.log(`[Find Base Object] Search ${symbolReferenceRoot.Name}`, LogLevel.Verbose)
     let symRef: SymbolReferenceRoot | SymbolReferenceNamespace | undefined = symbolReferenceRoot;
     for (const namespacePart of namespaceParts) {
         symRef = symRef?.Namespaces?.find(ns => ns.Name === namespacePart) || undefined;
     }
     if (!symRef) {
-        output.log(`[Find Base Object] Error: Could not find namespace ${baseObjectNamespace} in ${symbolReferenceRoot.Name}`, LogLevel.Verbose)
+        output.log(`[Find Base Object]Could not find namespace ${baseObjectNamespace} in ${symbolReferenceRoot.Name}`, LogLevel.Verbose)
         return undefined;
     }
     let objects: SymbolReferenceObject[] = [];

@@ -1,13 +1,11 @@
 import { Disposable, Position, Uri } from "vscode";
 import { ALParserNinja } from "@vjeko.com/al-parser-ninja";
-import { ALObject } from "@vjeko.com/al-parser-types-ninja";
 import { LogLevel, output } from "./Output";
 import { CheckType } from "@vjeko.com/al-parser-ninja/dist/CheckType";
 import { ALRange } from "../lib/types/ALRange";
 import { readFileSync } from "fs";
 import { ALObjectNamespace } from "../lib/types/ALObjectNamespace";
 import { getNamespace } from "../lib/functions/getNamespace";
-import { executeWithStopwatchAsync } from "../lib/MeasureTime";
 
 export interface NextIdContext {
     injectSemicolon: boolean;
@@ -58,7 +56,7 @@ export class ParserConnector implements Disposable {
         for (let lineNo = 0; lineNo < lines.length; lineNo++) {
             const match = lines[lineNo].match(regex);
             if (match && match.index !== undefined && match.groups?.objectname) {
-                let namespace = match.groups?.namespace || await executeWithStopwatchAsync(() => getNamespace(Uri.file(path), new Position(lineNo, match.index! + match[0].length - 1)), "GetNamespace");
+                let namespace = match.groups?.namespace || await getNamespace(Uri.file(path), lineNo, extensionType, match.groups!.objectname);
                 return { extends: match.groups?.objectname, extendsNamespace: namespace };
             }
         }

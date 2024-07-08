@@ -32,6 +32,7 @@ export class ALApp implements Disposable, BackEndAppInfo {
     public readonly onManifestChanged = this._onManifestChanged.event;
     public readonly onConfigChanged = this._onConfigChanged.event;
     private _loadAllDependenciesPromise: Promise<ALAppPackage[]> | undefined = undefined;
+    private _dependencies: ALAppPackage[] = [];
     private _diposed = false;
     private _manifest: ALAppManifest;
     private _config: ObjIdConfig;
@@ -218,7 +219,7 @@ export class ALApp implements Disposable, BackEndAppInfo {
             return this._loadAllDependenciesPromise;
         this._loadAllDependenciesPromise = executeWithStopwatchAsync(
             () => WorkspaceManager.instance.loadDependencyPackages(this),
-            `Start loading dependency packages`
+            `Start loading dependency packages for ${this.name}`
         );
         this._loadAllDependenciesPromise.then(() => { this._loadAllDependenciesPromise = undefined; });
         return this._loadAllDependenciesPromise;
@@ -229,11 +230,15 @@ export class ALApp implements Disposable, BackEndAppInfo {
      * @returns the highest version of each dependency of this app.
      */
     public async getDependencies(): Promise<ALAppPackage[]> {
-        const allAppPackages = await executeWithStopwatchAsync(
-            () => this.loadAllDependencies(),
-            `Load dependencies for ${this.name}`
-        );
-        const appPackages = allAppPackages.filter(appPackage => appPackage !== undefined) as ALAppPackage[];
+        const invalidCache = this._dependencies.some(dep => dep.isOutdated) ||
+            this.dependencyPackageUris.some(uri => !this._dependencies.some(dep => dep.fsPath === uri.fsPath));
+        if (invalidCache) {
+            this._dependencies = await executeWithStopwatchAsync(
+                () => this.loadAllDependencies(),
+                `Load dependencies for ${this.name}`
+            );
+        }
+        const appPackages = this._dependencies.filter(appPackage => appPackage !== undefined) as ALAppPackage[];
 
         const dependencies: ALAppPackage[] = []
         const uniqueApps = new Set(appPackages.map(p => p.appId))
@@ -243,6 +248,17 @@ export class ALApp implements Disposable, BackEndAppInfo {
             dependencies.push(latestVersion)
         });
         return dependencies;
+    }
+    public get dependencyPackageUris(): Uri[] {
+        const uris: Uri[] = [];
+        for (const packageCachePath of this.packageCachePaths) {
+            const packageUri = path.isAbsolute(packageCachePath) ? Uri.file(packageCachePath) : Uri.file(path.join(this.uri.fsPath, packageCachePath));
+            if (fs.existsSync(packageUri.fsPath))
+                for (const file of fs.readdirSync(packageUri.fsPath, { withFileTypes: true }))
+                    if (file.isFile() && file.name.endsWith(".app"))
+                        uris.push(Uri.file(path.join(packageUri.fsPath, file.name)));
+        }
+        return uris;
     }
 
     /**
