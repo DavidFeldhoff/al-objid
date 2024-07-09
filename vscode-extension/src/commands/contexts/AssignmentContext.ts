@@ -5,4 +5,5 @@ export interface AssignmentIdContext {
     app: ALApp;
     objectType: ALObjectType;
     objectId: number;
+    fieldId?: number;
 }

@@ -4,6 +4,7 @@ import { executeWithStopwatchAsync } from "./MeasureTime";
 import { ALObject } from "@vjeko.com/al-parser-types-ninja";
 import { ParserConnector } from "../features/ParserConnector";
 import { getStorageId } from "./functions/getStorageId";
+import { ALObjectNamespace } from "./types/ALObjectNamespace";
 
 export async function getWorkspaceFolderFiles(uri: Uri): Promise<Uri[]> {
     let folderPath: string = uri.fsPath;
@@ -14,8 +15,8 @@ export async function getWorkspaceFolderFiles(uri: Uri): Promise<Uri[]> {
     );
 }
 
-export async function getObjectDefinitions(uris: Uri[]): Promise<ALObject[]> {
-    return executeWithStopwatchAsync(() => ParserConnector.instance.parse(uris, true), `Parsing ${uris.length} object files`);
+export async function getObjectDefinitions(uris: Uri[]): Promise<ALObjectNamespace[]> {
+    return executeWithStopwatchAsync(() => ParserConnector.instance.parse(uris), `Parsing ${uris.length} object files`);
 }
 
 export async function updateActualConsumption(objects: ALObject[], consumption: ConsumptionInfo): Promise<void> {

@@ -4,6 +4,7 @@ import { NinjaALRange } from "./types/NinjaALRange";
 import { CONFIG_FILE_NAME, EXTENSION_NAME, LABELS } from "./constants";
 import { EventLogEntry } from "./types/EventLogEntry";
 import { ALApp } from "./ALApp";
+import { Config } from "./Config";
 
 // TODO All "learn more" messages should wrap their learn more action to reduce complexity of consumers
 
@@ -102,11 +103,30 @@ export const UI = {
                 "OK",
                 LABELS.BUTTON_DONT_SHOW_AGAIN
             ),
+        showFieldNumbersAboutToRunOut: (name: string, fieldConsumptionKey: string, remaining: number) => {
+            const type = fieldConsumptionKey.split('_')[0];
+            const id = fieldConsumptionKey.split('_').slice(1).join('_');
+            const appendix = Config.instance.storeExtensionValuesOrIdsOnBaseObject ? ` As you have configured to store ${type.includes('enum') ? 'value' : 'field'} IDs on base objects, this warning applies to extensions of ${type} ${id} as well.` : '';
+            return window.showWarningMessage(
+                `Only ${remaining} IDs remain for field ids for ${type} ${id} in ${name} app.${appendix}`,
+                "OK",
+                LABELS.BUTTON_DONT_SHOW_AGAIN
+            )
+        },
         showDisabledOnlyForAppAndType: (name: string, type: string) =>
             window.showInformationMessage(
                 `This warning is now disabled for ${type} objects in ${name} app. You will keep seeing it for other object types and other apps. If you want to disable it completely, switch off the "Show Range Warnings" configuration setting.`,
                 "OK"
             ),
+        showDisabledOnlyForAppAndFieldsOfType: (name: string, fieldConsumptionKey: string) => {
+            const type = fieldConsumptionKey.split('_')[0];
+            const id = fieldConsumptionKey.split('_').slice(1).join('_');
+
+            return window.showInformationMessage(
+                `This warning is now disabled for ${type.includes('enum') ? 'value' : 'field'} IDs of ${type} ${id} in ${name} app. You will keep seeing it for other objects and other apps. If you want to disable it completely, switch off the "Show Range Warnings" configuration setting.`,
+                "OK"
+            )
+        },
         showNoMoreNumbersWarning: async () =>
             window.showWarningMessage(
                 "No more numbers are available for assignment. Do you want to synchronize?",
@@ -127,43 +147,42 @@ export const UI = {
     },
 
     assignment: {
-        showNotUpdatedError: async (type: string, id: number) =>
+        showNotUpdatedError: async (type: string, id: number, fieldId?: number) =>
             window.showErrorMessage(
-                `We could not update the object ID for ${type} ${id}. It seems that somebody on your team has just assigned it to another object.`,
+                `We could not update the ID for ${fieldId ? `field ${fieldId} of ` : ''}${type} ${id}. It seems that somebody on your team has just assigned it to another object.`,
                 LABELS.BUTTON_LEARN_MORE
             ),
         showInteractiveNoOverlapError: async (app: ALApp, type: string) =>
             window.showErrorMessage(
-                `The range you have selected does not overlap with any of the existing ranges configured in your ${
-                    app.config.objectRanges[type]
-                        ? `.objidconfig file ${type} ranges`
-                        : app.config.idRanges.length
+                `The range you have selected does not overlap with any of the existing ranges configured in your ${app.config.objectRanges[type]
+                    ? `.objidconfig file ${type} ranges`
+                    : app.config.idRanges.length
                         ? ".objidconfig file idRanges"
                         : "app manifest"
                 }.`,
                 LABELS.BUTTON_LEARN_MORE
             ),
-        reclaimId: async (type: string, id: number) =>
+        reclaimId: async (type: string, id: number, fieldId?: number) =>
             window.showInformationMessage(
-                `Are you sure that ${type} ${id} is really available and not actually in use by another local or remote branch?`,
+                `Are you sure that ${fieldId ? `field Id ${fieldId} of ` : ''}${type} ${id} is really available and not actually in use by another local or remote branch?`,
                 LABELS.YES,
                 LABELS.NO,
                 LABELS.BUTTON_LEARN_MORE
             ),
-        reconfirmReclaimId: async (type: string, id: number) =>
+        reconfirmReclaimId: async (type: string, id: number, fieldId?: number) =>
             window.showInformationMessage(
-                `Call us extra careful, but are you really sure that ${type} ${id} is really no longer in use by another local or remote branch?`,
+                `Call us extra careful, but are you really sure that ${fieldId ? `field Id ${fieldId} of ` : ''}${type} ${id} is really no longer in use by another local or remote branch?`,
                 LABELS.YES,
                 LABELS.NO,
                 LABELS.BUTTON_LEARN_MORE
             ),
-        reclaimSucceeded: async (type: string, id: number) =>
+        reclaimSucceeded: async (type: string, id: number, fieldId?: number) =>
             window.showInformationMessage(
-                `Object ID ${type} ${id} has been successfully reclaimed. It is now free for assignment to another object.`
+                `${fieldId ? `Field ID ${fieldId} of` : 'Object ID'} ${type} ${id} has been successfully reclaimed. It is now free for assignment to another object.`
             ),
-        reclaimFailed: async (type: string, id: number) =>
+        reclaimFailed: async (type: string, id: number, fieldId?: number) =>
             window.showErrorMessage(
-                `We could not reclaim object ID ${type} ${id}. This is an unexpected error, please try again.`
+                `We could not reclaim ${fieldId ? `field ID ${fieldId} of` : 'object ID'} ${type} ${id}. This is an unexpected error, please try again.`
             ),
     },
 
@@ -257,10 +276,9 @@ export const UI = {
             ),
         showInvalidRangeFromToError: (range: NinjaALRange) =>
             window.showErrorMessage(
-                `Range ${
-                    range.description
-                        ? `${range.description} (${range.from}..${range.to})`
-                        : `${range.from}..${range.to}`
+                `Range ${range.description
+                    ? `${range.description} (${range.from}..${range.to})`
+                    : `${range.from}..${range.to}`
                 } has "to" lower than "from". "from" must be lower, and "to" must be higher.`,
                 LABELS.FIX
             ),

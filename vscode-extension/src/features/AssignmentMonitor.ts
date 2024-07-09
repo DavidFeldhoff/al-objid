@@ -2,24 +2,30 @@ import { Diagnostics, DIAGNOSTIC_CODE } from "./diagnostics/Diagnostics";
 import { DiagnosticSeverity, Disposable, FileSystemWatcher, Position, Range, Uri, workspace } from "vscode";
 import { getObjectDefinitions, getWorkspaceFolderFiles } from "../lib/ObjectIds";
 import { LogLevel, output } from "./Output";
-import { ALObject } from "@vjeko.com/al-parser-types-ninja";
+import { ALObject, ALUniqueEntity } from "@vjeko.com/al-parser-types-ninja";
 import { ConsumptionCache } from "./ConsumptionCache";
 import { consumptionToObjects } from "../lib/functions/consumptionToObjects";
 import { ConsumptionDataOfObject } from "../lib/types/ConsumptionDataOfObject";
 import { PropertyBag } from "../lib/types/PropertyBag";
 import { EventEmitter } from "vscode";
 import { AssignedALObject } from "../lib/types/AssignedALObject";
+import { ConsumptionDataOfField } from "../lib/types/ConsumptionDataOfFields";
+import { fieldConsumptionToObjects } from "../lib/functions/fieldConsumptionToObjects";
+import { ALObjectNamespace } from "../lib/types/ALObjectNamespace";
+import { getStorageIdLight } from "../lib/functions/getStorageIdLight";
 
 export class AssigmentMonitor implements Disposable {
     private _assigned: AssignedALObject[] = [];
     private _unassigned: ALObject[] = [];
-    private readonly _onAssignmentChanged = new EventEmitter<{ assigned: AssignedALObject[], unassigned: ALObject[] }>();
+    private _lostFieldIds: { objectType: string, objectId: number, fieldIds: number[] }[] = [];
+    private _unassignedFields: { object: ALObjectNamespace, fields: ALUniqueEntity[] }[] = [];
+    private readonly _onAssignmentChanged = new EventEmitter<{ assigned: AssignedALObject[], unassigned: ALObject[], lostFieldIds: { objectType: string, objectId: number, fieldIds: number[] }[], unassignedFieldIds: { object: ALObjectNamespace, fields: ALUniqueEntity[] }[] }>();
     public readonly onAssignmentChanged = this._onAssignmentChanged.event;
     readonly _uri: Uri;
     readonly _hash: string;
     readonly _watcher: FileSystemWatcher;
     readonly _disposables: Disposable[] = [];
-    private _refreshing: boolean = false;
+    private _refreshPromise: Promise<void> | undefined;
 
     readonly _pending = {
         changed: [] as Uri[],
@@ -28,8 +34,9 @@ export class AssigmentMonitor implements Disposable {
     };
 
     _timeout: NodeJS.Timeout | undefined;
-    _objects: ALObject[] | undefined;
+    _objects: ALObjectNamespace[] | undefined;
     _consumption: ConsumptionDataOfObject | undefined;
+    _fieldConsumption: ConsumptionDataOfField | undefined;
     _diagnosedUris: Uri[] = [];
     _disposed: boolean = false;
 
@@ -45,7 +52,7 @@ export class AssigmentMonitor implements Disposable {
 
         this.scheduleRefreshObjects();
         this._disposables.push(
-            ConsumptionCache.instance.onConsumptionUpdate(hash, consumption => this.refreshConsumption(consumption))
+            ConsumptionCache.instance.onConsumptionUpdate(hash, (consumption, fieldConsumption) => this.refreshConsumption(consumption, fieldConsumption)),
         );
     }
 
@@ -77,9 +84,10 @@ export class AssigmentMonitor implements Disposable {
         if (this._timeout) {
             clearTimeout(this._timeout);
         }
-        this._timeout = setTimeout(() => {
+        this._timeout = setTimeout(async () => {
             this._timeout = undefined;
-            this.refreshObjects();
+            await this.refreshObjects();
+            this.refresh();
         }, 125);
     }
 
@@ -116,24 +124,30 @@ export class AssigmentMonitor implements Disposable {
     }
 
     private async refreshObjects() {
-        if (this._refreshing)
-            return;
-        this._refreshing = true;
-        output.log("Refreshing object ID consumption after change in workspace AL files", LogLevel.Verbose);
-        const uris = await this.getPendingUris();
-        const objects = await getObjectDefinitions(uris);
+        if (this._refreshPromise)
+            return this._refreshPromise;
+        this._refreshPromise = new Promise<void>(async (resolve, reject) => {
+            try {
+                output.log("Refreshing object ID consumption after change in workspace AL files", LogLevel.Verbose);
+                const uris = await this.getPendingUris();
+                const objects = await getObjectDefinitions(uris);
 
-        if (!this._objects) {
-            this._objects = [];
-        }
-        this._objects.push(...objects);
-        this.refresh();
-        this._refreshing = false;
+                if (!this._objects) {
+                    this._objects = [];
+                }
+                this._objects.push(...objects);
+                resolve();
+            } catch (error) {
+                reject(error);
+            }
+        }).then(() => this._refreshPromise = undefined);
+        return this._refreshPromise;
     }
 
-    private async refreshConsumption(consumption: ConsumptionDataOfObject) {
+    private async refreshConsumption(consumption: ConsumptionDataOfObject, fieldConsumption: ConsumptionDataOfField) {
         await this.refreshObjects();
         this._consumption = consumption;
+        this._fieldConsumption = fieldConsumption;
         this.refresh();
     }
 
@@ -160,10 +174,47 @@ export class AssigmentMonitor implements Disposable {
         );
         this._unassigned = unassigned;
 
-        this._onAssignmentChanged.fire({ assigned, unassigned })
+        if (this._fieldConsumption) {
+            const consumedObjectsAndFields = fieldConsumptionToObjects(this._fieldConsumption);
+
+            this._lostFieldIds = [];
+            for (const consumedObject of consumedObjectsAndFields) {
+                const object = this._objects.find(object => {
+                    const storageId = getStorageIdLight(object);
+                    return storageId.type === consumedObject.type && storageId.id === consumedObject.objectId
+                });
+                if (!object) {
+                    this._lostFieldIds.push({ objectType: consumedObject.type, objectId: consumedObject.objectId, fieldIds: consumedObject.ids });
+                } else {
+                    const lostIds = consumedObject.ids.filter(id => !(object.fields || []).some(field => field.id === id));
+                    if (lostIds.length > 0)
+                        this._lostFieldIds.push({ objectType: object.type, objectId: object.id, fieldIds: lostIds });
+                }
+            }
+
+            this._unassignedFields = [];
+            for (const object of this._objects.filter(object => (object.fields?.length || 0) > 0)) {
+                const storageId = getStorageIdLight(object);
+                const consumedObject = consumedObjectsAndFields.find(consumedObject => consumedObject.type === storageId.type && consumedObject.objectId === storageId.id);
+                if (!consumedObject) {
+                    this._unassignedFields.push({ object, fields: object.fields! });
+                } else {
+                    const unassignedFieldIds = (object.fields || []).filter(field => !consumedObject.ids.includes(field.id));
+                    if (unassignedFieldIds.length > 0)
+                        this._unassignedFields.push({ object, fields: unassignedFieldIds });
+                }
+            }
+        }
+
+        this._onAssignmentChanged.fire({ assigned, unassigned, lostFieldIds: this._lostFieldIds, unassignedFieldIds: this._unassignedFields })
 
         this.clearDiagnostics();
 
+        this.createObjectDiagnostics(unassigned);
+        this.createFieldDiagnostics();
+    }
+
+    private createObjectDiagnostics(unassigned: ALObjectNamespace[]) {
         let uriCache: PropertyBag<Uri> = {};
         for (let object of unassigned) {
             if (object.hasError) {
@@ -195,6 +246,41 @@ export class AssigmentMonitor implements Disposable {
             diagnostic.data = object;
         }
     }
+    private createFieldDiagnostics() {
+        let uriCache: PropertyBag<Uri> = {};
+        for (let unassignedFieldEntry of this.unassignedFields) {
+            const object = unassignedFieldEntry.object;
+            if (object.hasError) {
+                continue;
+            }
+            if (!uriCache[object.path]) {
+                const uri = Uri.file(object.path);
+                uriCache[object.path] = uri;
+            }
+
+            const objectUri = uriCache[object.path];
+            for (const unassignedField of unassignedFieldEntry.fields) {
+                const diagnose = Diagnostics.instance.createDiagnostics(
+                    objectUri,
+                    `ninjaunassigned.${object.type}.${object.id}.${unassignedField.id}`
+                );
+                if (!this._diagnosedUris.some(u => u.fsPath === objectUri.fsPath)) {
+                    this._diagnosedUris.push(objectUri);
+                }
+
+                const diagnostic = diagnose(
+                    new Range(
+                        new Position(unassignedField.line, unassignedField.character),
+                        new Position(unassignedField.line, unassignedField.character + unassignedField.id.toString().length)
+                    ),
+                    `Field ${unassignedField.id} of ${object.type} ${object.name} is not assigned with AL Object ID Ninja`,
+                    DiagnosticSeverity.Warning,
+                    DIAGNOSTIC_CODE.CONSUMPTION.FIELD_UNASSIGNED
+                );
+                diagnostic.data = { object: object, field: unassignedField };
+            }
+        }
+    }
 
     public get assigned() {
         return this._assigned;
@@ -202,6 +288,12 @@ export class AssigmentMonitor implements Disposable {
 
     public get unassigned() {
         return this._unassigned;
+    }
+    public get lostFieldIds() {
+        return this._lostFieldIds;
+    }
+    public get unassignedFields() {
+        return this._unassignedFields;
     }
 
     private clearDiagnostics() {

@@ -4,7 +4,7 @@ import { readFileSync } from "fs";
 import { WorkspaceManager } from "../../features/WorkspaceManager";
 import { ALObjectType } from "@vjeko.com/al-parser-types";
 
-export async function getNamespace(uri: Uri, objectDeclarationLineNo: number, extensionObjectType: string, baseObjectName: string): Promise<string> {
+export async function findNamespaceAndIdInDependencyPackages(uri: Uri, objectDeclarationLineNo: number, extensionObjectType: string, baseObjectName: string): Promise<{ id: number, namespace: string } | undefined> {
     const lines: string[] = readFileSync(uri.fsPath, 'utf8').split('\n')
     const possibleUsingLines = lines.slice(0, objectDeclarationLineNo);
     const regexUsing = /using ([^;]+);/i;
@@ -21,9 +21,9 @@ export async function getNamespace(uri: Uri, objectDeclarationLineNo: number, ex
             (obj.namespace === undefined || obj.namespace === "" || usings.length === 0 || usings.some(using => using.toLowerCase() === obj.namespace.toLowerCase())) &&
             obj.name && obj.name.replace(/"/g, "").toLowerCase() === baseObjectName.replace(/"/g, "").toLowerCase())
         if (baseObject)
-            return baseObject.namespace;
+            return { id: baseObject.id, namespace: baseObject.namespace };
     }
 
     output.log(`[Get Namespace] Error: Could not find namespace for ${uri.fsPath}`, LogLevel.Info)
-    return "";
+    return undefined;
 };

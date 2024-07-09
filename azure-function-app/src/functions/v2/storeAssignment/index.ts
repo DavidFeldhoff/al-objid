@@ -4,19 +4,19 @@ import { StoreAssignmentRequest, StoreAssignmentResponse } from "./types";
 import { addAssignment, removeAssignment } from "./update";
 
 const storeAssignment = new ALNinjaRequestHandler<StoreAssignmentRequest, StoreAssignmentResponse>(async (request) => {
-    const { appId, type, id } = request.body;
+    const { appId, type, id, fieldId } = request.body;
 
     let app: AppInfo, success: boolean = false;
 
     switch (request.method) {
         case "POST":
-            const addResult = await addAssignment(appId, request, type, id);
+            const addResult = await addAssignment(appId, request, type, id, fieldId);
             app = addResult.app;
             success = addResult.success;
             break;
 
         case "DELETE":
-            const removeResult = await removeAssignment(appId, request, type, id);
+            const removeResult = await removeAssignment(appId, request, type, id, fieldId);
             app = removeResult.app;
             success = removeResult.success;
             break;

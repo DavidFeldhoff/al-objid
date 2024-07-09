@@ -7,8 +7,9 @@ import { RootNode } from "../../RootNode";
 import { ViewController } from "../../ViewController";
 import { CollisionsGroupNode } from "./CollisionsGroupNode";
 import { AssignedALObject } from "../../../../lib/types/AssignedALObject";
-import { ALObject } from "@vjeko.com/al-parser-types-ninja";
+import { ALObject, ALUniqueEntity } from "@vjeko.com/al-parser-types-ninja";
 import { LostGroupNode } from "./LostGroupNode";
+import { ALObjectNamespace } from "../../../../lib/types/ALObjectNamespace";
 
 /**
  * Represents a root node for assignment explorer.
@@ -26,6 +27,8 @@ export class AssignmentExplorerRootNode extends RootNode implements AppAwareNode
     private _unassigned: ALObject[] = [];
     private _assignedPerApp: Record<string, AssignedALObject[]> = {};
     private _unassignedPerApp: Record<string, ALObject[]> = {};
+    private _unassignedFieldsPerApp: Record<string, { object: ALObjectNamespace, fields: ALUniqueEntity[] }[]> = {};
+    private _lostFieldsPerApp: Record<string, { objectType: string, objectId: number, fieldIds: number[] }[]> = {};
 
     constructor(app: ALApp, view: ViewController) {
         super(view);
@@ -53,12 +56,14 @@ export class AssignmentExplorerRootNode extends RootNode implements AppAwareNode
         }
 
         this.attachPoolApp(app);
-        this.populateAssignments(app.assignmentMonitor.assigned, app.assignmentMonitor.unassigned, app.hash);
+        this.populateAssignments(app.assignmentMonitor.assigned, app.assignmentMonitor.unassigned, app.assignmentMonitor.lostFieldIds, app.assignmentMonitor.unassignedFields, app.hash);
     }
 
-    private populateAssignments(assigned: AssignedALObject[], unassigned: ALObject[], hash: string) {
+    private populateAssignments(assigned: AssignedALObject[], unassigned: ALObject[], lostFieldIds: { objectType: string, objectId: number, fieldIds: number[] }[], unassignedFieldIds: { object: ALObjectNamespace, fields: ALUniqueEntity[] }[], hash: string) {
         this._assignedPerApp[hash] = assigned;
         this._unassignedPerApp[hash] = unassigned;
+        this._lostFieldsPerApp[hash] = lostFieldIds;
+        this._unassignedFieldsPerApp[hash] = unassignedFieldIds;
         this.mergeAssignments();
     }
 
@@ -93,8 +98,8 @@ export class AssignmentExplorerRootNode extends RootNode implements AppAwareNode
     }
 
     public attachPoolApp(app: ALApp) {
-        this._subscriptions.push(app.assignmentMonitor.onAssignmentChanged(({ assigned, unassigned }) => {
-            this.populateAssignments(assigned, unassigned, app.hash);
+        this._subscriptions.push(app.assignmentMonitor.onAssignmentChanged((data) => {
+            this.populateAssignments(data.assigned, data.unassigned, data.lostFieldIds, data.unassignedFieldIds, app.hash);
             this._view.update(this);
         }));
     }

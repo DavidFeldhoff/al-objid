@@ -7,12 +7,12 @@ import { NinjaCommand } from "./commands";
 import { AssignmentIdContext } from "./contexts/AssignmentContext";
 
 export default async function storeIdAssignment(context: AssignmentIdContext) {
-    const { app, objectType, objectId } = context;
-    Telemetry.instance.logAppCommand(app, NinjaCommand.StoreIdAssignment, { objectType, objectId });
+    const { app, objectType, objectId, fieldId } = context;
+    Telemetry.instance.logAppCommand(app, NinjaCommand.StoreIdAssignment, { objectType, objectId, fieldId });
 
-    const result = await Backend.addAssignment(app, objectType, objectId);
+    const result = await Backend.addAssignment(app, objectType, objectId, fieldId);
     if (!result) {
-        if ((await UI.assignment.showNotUpdatedError(objectType, objectId)) === LABELS.BUTTON_LEARN_MORE) {
+        if ((await UI.assignment.showNotUpdatedError(objectType, objectId, fieldId)) === LABELS.BUTTON_LEARN_MORE) {
             openExternal(URLS.WIKI.DOES_EVERYONE_NEED_TO_USE_NINJA);
         }
     }

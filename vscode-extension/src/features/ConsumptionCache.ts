@@ -8,6 +8,7 @@ import { ConsumptionDataOfField } from "../lib/types/ConsumptionDataOfFields";
 export interface ConsumptionEventInfo {
     appId: string;
     consumption: ConsumptionDataOfObject;
+    fieldConsumption: ConsumptionDataOfField;
 }
 
 export class ConsumptionCache implements Disposable {
@@ -27,10 +28,10 @@ export class ConsumptionCache implements Disposable {
     private readonly _onConsumptionUpdateEmitter = new EventEmitter<ConsumptionEventInfo>();
     private readonly _onConsumptionUpdateEvent = this._onConsumptionUpdateEmitter.event;
 
-    public onConsumptionUpdate(appId: string, onUpdate: (consumption: ConsumptionDataOfObject) => void): Disposable {
+    public onConsumptionUpdate(appId: string, onUpdate: (consumption: ConsumptionDataOfObject, fieldConsumption: ConsumptionDataOfField) => void): Disposable {
         return this._onConsumptionUpdateEvent(e => {
             if (e.appId === appId) {
-                onUpdate(e.consumption);
+                onUpdate(e.consumption, e.fieldConsumption);
             }
         });
     }
@@ -47,15 +48,17 @@ export class ConsumptionCache implements Disposable {
             .forEach(key => consumptionFieldIds[key] = consumption[key]);
 
         let objectIdsUpdated = JSON.stringify(this._cacheOfObjects[appId]) !== JSON.stringify(consumptionObjectIds);
-        if (objectIdsUpdated) {
-            this._cacheOfObjects[appId] = consumptionObjectIds;
-            ConsumptionWarnings.instance.checkRemainingIds(appId, consumptionObjectIds);
-            this._onConsumptionUpdateEmitter.fire({ appId, consumption: consumptionObjectIds });
-        }
         let fieldIdsUpdated = JSON.stringify(this._cacheOfFields[appId]) !== JSON.stringify(consumptionFieldIds);
-        if (fieldIdsUpdated) {
-            this._cacheOfFields[appId] = consumptionFieldIds;
-            // TODO: Handle warning for field ids
+        if (objectIdsUpdated || fieldIdsUpdated) {
+            if (objectIdsUpdated) {
+                this._cacheOfObjects[appId] = consumptionObjectIds;
+                ConsumptionWarnings.instance.checkRemainingIds(appId, consumptionObjectIds);
+            }
+            if (fieldIdsUpdated) {
+                this._cacheOfFields[appId] = consumptionFieldIds;
+                ConsumptionWarnings.instance.checkRemainingFieldIds(appId, consumptionFieldIds);
+            }
+            this._onConsumptionUpdateEmitter.fire({ appId, consumption: consumptionObjectIds, fieldConsumption: consumptionFieldIds });
         }
         return objectIdsUpdated || fieldIdsUpdated;
     }

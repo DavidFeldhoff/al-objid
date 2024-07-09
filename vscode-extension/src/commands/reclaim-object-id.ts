@@ -5,13 +5,13 @@ import { NinjaCommand } from "./commands";
 import { AssignmentIdContext } from "./contexts/AssignmentContext";
 
 export default async function confirmReclaimObjectId(context: AssignmentIdContext) {
-    const { app, objectType, objectId } = context;
-    Telemetry.instance.logAppCommand(app, NinjaCommand.ReclaimObjectId, { objectType, objectId });
+    const { app, objectType, objectId, fieldId } = context;
+    Telemetry.instance.logAppCommand(app, NinjaCommand.ReclaimObjectId, { objectType, objectId, fieldId });
 
-    const response = await Backend.removeAssignment(app, objectType, objectId);
+    const response = await Backend.removeAssignment(app, objectType, objectId, fieldId);
     if (response) {
-        UI.assignment.reclaimSucceeded(objectType, objectId);
+        UI.assignment.reclaimSucceeded(objectType, objectId, fieldId);
     } else {
-        UI.assignment.reclaimFailed(objectType, objectId);
+        UI.assignment.reclaimFailed(objectType, objectId, fieldId);
     }
 }

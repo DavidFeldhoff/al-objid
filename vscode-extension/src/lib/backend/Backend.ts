@@ -134,7 +134,7 @@ export class Backend {
         return response.value;
     }
 
-    public static async addAssignment(app: ALApp, type: string, id: number): Promise<boolean> {
+    public static async addAssignment(app: ALApp, type: string, id: number, fieldId?: number): Promise<boolean> {
         this.rememberManagedApp(app.hash);
 
         const appId = WorkspaceManager.instance.getPoolIdFromAppIdIfAvailable(app.hash);
@@ -143,12 +143,13 @@ export class Backend {
             appId,
             type,
             id,
+            fieldId,
             authKey: app.config.authKey,
         });
         return !!response.value?.updated;
     }
 
-    public static async removeAssignment(app: ALApp, type: string, id: number): Promise<boolean> {
+    public static async removeAssignment(app: ALApp, type: string, id: number, fieldId?: number): Promise<boolean> {
         this.rememberManagedApp(app.hash);
 
         const appId = WorkspaceManager.instance.getPoolIdFromAppIdIfAvailable(app.hash);
@@ -157,6 +158,7 @@ export class Backend {
             appId,
             type,
             id,
+            fieldId,
             authKey: app.config.authKey,
         });
         return !!response.value?.updated;

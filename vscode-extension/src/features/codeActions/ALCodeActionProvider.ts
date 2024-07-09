@@ -18,6 +18,11 @@ const QuickFix: PropertyBag<QuickFixProvider> = {
             createAction(NinjaCommand.QuickFixStoreIdAssignment, [app, data, document, range], "Store ID assignment")
         );
     },
+    [DIAGNOSTIC_CODE.CONSUMPTION.FIELD_UNASSIGNED]: ({ actions, app, data, range, document }) => {
+        actions.push(
+            createAction(NinjaCommand.QuickFixStoreFieldIdAssignment, [app, data, document, range], "Store ID assignment")
+        );
+    }
 };
 
 export class ALCodeActionProvider extends BaseCodeActionProvider {

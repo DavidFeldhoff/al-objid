@@ -25,11 +25,13 @@ export const DIAGNOSTIC_CODE = {
 
     CONSUMPTION: {
         UNASSIGNED: "N0301",
+        FIELD_UNASSIGNED: "N0302"
     },
 };
 
 export const DIAGNOSTIC_URI: PropertyBag<Uri> = {
     [DIAGNOSTIC_CODE.CONSUMPTION.UNASSIGNED]: Uri.parse("https://github.com/vjekob/al-objid/wiki/Ninja-Warning-N0301"),
+    [DIAGNOSTIC_CODE.CONSUMPTION.FIELD_UNASSIGNED]: Uri.parse("https://github.com/vjekob/al-objid/wiki/Ninja-Warning-N0302"),
 };
 
 export class Diagnostics implements Disposable {

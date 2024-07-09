@@ -24,6 +24,7 @@ import { QuickFixStoreIdAssignment } from "./quickfix-store-id-assignment";
 import reclaimObjectId from "./reclaim-object-id";
 import confirmReclaimObjectId from "./confirm-reclaim-object-id";
 import storeIdAssignment from "./store-id-assignment";
+import { QuickFixStoreFieldIdAssignment } from "./quickfix-store-fieldid-assignment";
 
 export enum CodeCommand {
     SetContext = "setContext",
@@ -53,6 +54,7 @@ export enum NinjaCommand {
     QuickFixSelectValidType = "vjeko-al-objid.quickfix-select-valid-type",
     QuickFixRemoveProperty = "vjeko-al-objid.quickfix-remove-property",
     QuickFixStoreIdAssignment = "vjeko-al-objid.quickfix-store-id-assignment",
+    QuickFixStoreFieldIdAssignment = "vjeko-al-objid.quickfix-store-fieldid-assignment",
     ExpandAllRangeExplorer = "vjeko-al-objid.expand-all-rangeExplorer",
     CollapseAllRangeExplorer = "vjeko-al-objid.collapse-all-rangeExplorer",
     GoToDefinition = "vjeko-al-objid.goto-definition",
@@ -81,6 +83,7 @@ export const commandMap: { [key: string]: (...args: any[]) => any } = {
     [NinjaCommand.QuickFixSelectValidType]: quickFixSelectValidType,
     [NinjaCommand.QuickFixRemoveProperty]: quickFixRemoveProperty,
     [NinjaCommand.QuickFixStoreIdAssignment]: QuickFixStoreIdAssignment,
+    [NinjaCommand.QuickFixStoreFieldIdAssignment]: QuickFixStoreFieldIdAssignment,
     [NinjaCommand.ExpandAllRangeExplorer]: expandAllRangeExplorer,
     [NinjaCommand.CollapseAllRangeExplorer]: collapseAllRangeExplorer,
     [NinjaCommand.GoToDefinition]: goToDefinition,
