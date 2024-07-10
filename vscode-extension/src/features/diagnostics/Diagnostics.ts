@@ -60,29 +60,29 @@ export class Diagnostics implements Disposable {
     //#endregion
 
     private readonly _diagnostics: DiagnosticCollection;
-    private _documents = new WeakMap<Uri, PropertyBag<Diagnostic[]>>();
-    private _schedulers = new WeakMap<Uri, NodeJS.Timeout>();
+    private _documents = new Map<string, PropertyBag<Diagnostic[]>>();
+    private _schedulers = new Map<string, NodeJS.Timeout>();
 
     public resetForUri(uri: Uri) {
         this._diagnostics.delete(uri);
     }
 
     public createDiagnostics(uri: Uri, category: string): CreateDiagnostic {
-        let document = this._documents.get(uri);
+        let document = this._documents.get(uri.fsPath);
         if (!document) {
             document = {};
-            this._documents.set(uri, document);
+            this._documents.set(uri.fsPath, document);
         }
         document[category] = [];
 
         const newDiagnostics = (document[category] = [] as Diagnostic[]);
         const scheduleUpdate = () => {
-            const scheduler = this._schedulers.get(uri);
+            const scheduler = this._schedulers.get(uri.fsPath);
             if (scheduler) {
                 clearTimeout(scheduler);
             }
             this._schedulers.set(
-                uri,
+                uri.fsPath,
                 setTimeout(() => {
                     const set: Diagnostic[] = [];
                     for (let key of Object.keys(document!)) {
