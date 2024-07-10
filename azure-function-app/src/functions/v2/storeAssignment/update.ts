@@ -63,6 +63,8 @@ export async function removeAssignment(appId: string, request: ALNinjaRequestCon
                 return app;
             }
             app[`${type}_${id}`] = consumption.filter(x => x !== fieldId);
+            if((app[`${type}_${id}`] as number[]).length === 0)
+                delete app[`${type}_${id}`];
             request.log(app, "removeAssignment", { type, id, fieldId });
             return { ...app };
         } else {
@@ -72,6 +74,8 @@ export async function removeAssignment(appId: string, request: ALNinjaRequestCon
             }
 
             app[type] = consumption.filter(x => x !== id);
+            if((app[type] as number[]).length === 0)
+                delete app[type];
             request.log(app, "removeAssignment", { type, id });
 
             return { ...app };

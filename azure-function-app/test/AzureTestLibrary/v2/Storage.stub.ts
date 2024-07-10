@@ -70,6 +70,9 @@ export class StubStorage extends StubBuilder implements ContentAnalyzer {
     get content(): {} {
         return this._content;
     }
+    get appInfo(): AppInfo {
+        return this._content[`${this._appId}.json`] || {};
+    }
 
     objectIds(objectType: ALObjectType): number[] {
         const app = this._content[`${this._appId}.json`] || {};

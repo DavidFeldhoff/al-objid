@@ -2,7 +2,7 @@ import { Diagnostics, DIAGNOSTIC_CODE } from "./diagnostics/Diagnostics";
 import { DiagnosticSeverity, Disposable, FileSystemWatcher, Position, Range, Uri, workspace } from "vscode";
 import { getObjectDefinitions, getWorkspaceFolderFiles } from "../lib/ObjectIds";
 import { LogLevel, output } from "./Output";
-import { ALObject, ALUniqueEntity } from "@vjeko.com/al-parser-types-ninja";
+import { ALObject } from "@vjeko.com/al-parser-types-ninja";
 import { ConsumptionCache } from "./ConsumptionCache";
 import { consumptionToObjects } from "../lib/functions/consumptionToObjects";
 import { ConsumptionDataOfObject } from "../lib/types/ConsumptionDataOfObject";
@@ -13,13 +13,14 @@ import { ConsumptionDataOfField } from "../lib/types/ConsumptionDataOfFields";
 import { fieldConsumptionToObjects } from "../lib/functions/fieldConsumptionToObjects";
 import { ALObjectNamespace } from "../lib/types/ALObjectNamespace";
 import { getStorageIdLight } from "../lib/functions/getStorageIdLight";
+import { getAlObjectEntityIds } from "../lib/functions/getAlObjectEntityIds";
 
 export class AssigmentMonitor implements Disposable {
     private _assigned: AssignedALObject[] = [];
     private _unassigned: ALObject[] = [];
-    private _lostFieldIds: { objectType: string, objectId: number, fieldIds: number[] }[] = [];
-    private _unassignedFields: { object: ALObjectNamespace, fields: ALUniqueEntity[] }[] = [];
-    private readonly _onAssignmentChanged = new EventEmitter<{ assigned: AssignedALObject[], unassigned: ALObject[], lostFieldIds: { objectType: string, objectId: number, fieldIds: number[] }[], unassignedFieldIds: { object: ALObjectNamespace, fields: ALUniqueEntity[] }[] }>();
+    private _lostFieldIds: AssignedALObject[] = [];
+    private _unassignedFields: ALObjectNamespace[] = [];
+    private readonly _onAssignmentChanged = new EventEmitter<{ assigned: AssignedALObject[], unassigned: ALObject[], lostFieldIds: AssignedALObject[], unassignedFieldIds: ALObjectNamespace[] }>();
     public readonly onAssignmentChanged = this._onAssignmentChanged.event;
     readonly _uri: Uri;
     readonly _hash: string;
@@ -179,29 +180,48 @@ export class AssigmentMonitor implements Disposable {
 
             this._lostFieldIds = [];
             for (const consumedObject of consumedObjectsAndFields) {
-                const object = this._objects.find(object => {
+                const objects = this._objects.filter(object => {
                     const storageId = getStorageIdLight(object);
                     return storageId.type === consumedObject.type && storageId.id === consumedObject.objectId
                 });
-                if (!object) {
-                    this._lostFieldIds.push({ objectType: consumedObject.type, objectId: consumedObject.objectId, fieldIds: consumedObject.ids });
+                if (objects.length === 0) {
+                    this._lostFieldIds.push({ type: consumedObject.type, id: consumedObject.objectId, fieldOrValueIds: consumedObject.ids });
                 } else {
-                    const lostIds = consumedObject.ids.filter(id => !(object.fields || []).some(field => field.id === id));
+                    let name: string | undefined;
+                    let lostIds = consumedObject.ids;
+                    for (const object of objects) {
+                        if (!name)
+                            if (consumedObject.type.includes('extension') || !object.type.includes('extension'))
+                                name = object.name;
+                            else if (object.type.includes('extension') && object.extends)
+                                name = object.extends;
+                        const objectEntityIds = getAlObjectEntityIds(object);
+                        lostIds = lostIds.filter(id => !objectEntityIds.map(e => e.id).includes(id));
+                    }
                     if (lostIds.length > 0)
-                        this._lostFieldIds.push({ objectType: object.type, objectId: object.id, fieldIds: lostIds });
+                        this._lostFieldIds.push({ type: consumedObject.type, id: consumedObject.objectId, name: name, possiblePaths: objects.map(o => o.path), fieldOrValueIds: lostIds });
                 }
             }
 
             this._unassignedFields = [];
-            for (const object of this._objects.filter(object => (object.fields?.length || 0) > 0)) {
+            for (const object of this._objects) {
+                const entities = getAlObjectEntityIds(object);
+                if (entities.length === 0)
+                    continue;
                 const storageId = getStorageIdLight(object);
                 const consumedObject = consumedObjectsAndFields.find(consumedObject => consumedObject.type === storageId.type && consumedObject.objectId === storageId.id);
                 if (!consumedObject) {
-                    this._unassignedFields.push({ object, fields: object.fields! });
+                    this._unassignedFields.push(object);
                 } else {
-                    const unassignedFieldIds = (object.fields || []).filter(field => !consumedObject.ids.includes(field.id));
-                    if (unassignedFieldIds.length > 0)
-                        this._unassignedFields.push({ object, fields: unassignedFieldIds });
+                    const unassignedFieldIds = entities.filter(fieldOrValue => !consumedObject.ids.includes(fieldOrValue.id));
+                    if (unassignedFieldIds.length > 0) {
+                        const objCopy: ALObjectNamespace = JSON.parse(JSON.stringify(object));
+                        if (objCopy.fields)
+                            objCopy.fields = unassignedFieldIds
+                        else
+                            objCopy.values = unassignedFieldIds
+                        this._unassignedFields.push(objCopy);
+                    }
                 }
             }
         }
@@ -248,8 +268,7 @@ export class AssigmentMonitor implements Disposable {
     }
     private createFieldDiagnostics() {
         let uriCache: PropertyBag<Uri> = {};
-        for (let unassignedFieldEntry of this.unassignedFields) {
-            const object = unassignedFieldEntry.object;
+        for (let object of this.unassignedFields) {
             if (object.hasError) {
                 continue;
             }
@@ -259,10 +278,10 @@ export class AssigmentMonitor implements Disposable {
             }
 
             const objectUri = uriCache[object.path];
-            for (const unassignedField of unassignedFieldEntry.fields) {
+            for (const unassignedFieldOrValue of getAlObjectEntityIds(object)) {
                 const diagnose = Diagnostics.instance.createDiagnostics(
                     objectUri,
-                    `ninjaunassigned.${object.type}.${object.id}.${unassignedField.id}`
+                    `ninjaunassigned.${object.type}.${object.id}.${unassignedFieldOrValue.id}`
                 );
                 if (!this._diagnosedUris.some(u => u.fsPath === objectUri.fsPath)) {
                     this._diagnosedUris.push(objectUri);
@@ -270,14 +289,14 @@ export class AssigmentMonitor implements Disposable {
 
                 const diagnostic = diagnose(
                     new Range(
-                        new Position(unassignedField.line, unassignedField.character),
-                        new Position(unassignedField.line, unassignedField.character + unassignedField.id.toString().length)
+                        new Position(unassignedFieldOrValue.line, unassignedFieldOrValue.character),
+                        new Position(unassignedFieldOrValue.line, unassignedFieldOrValue.character + unassignedFieldOrValue.id.toString().length)
                     ),
-                    `Field ${unassignedField.id} of ${object.type} ${object.name} is not assigned with AL Object ID Ninja`,
+                    `${object.values ? 'Value' : 'Field'} ${unassignedFieldOrValue.id} of ${object.type} ${object.name} is not assigned with AL Object ID Ninja`,
                     DiagnosticSeverity.Warning,
                     DIAGNOSTIC_CODE.CONSUMPTION.FIELD_UNASSIGNED
                 );
-                diagnostic.data = { object: object, field: unassignedField };
+                diagnostic.data = { object: object, field: unassignedFieldOrValue };
             }
         }
     }

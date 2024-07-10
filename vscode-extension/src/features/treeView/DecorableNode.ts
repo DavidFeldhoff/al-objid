@@ -37,17 +37,13 @@ export abstract class DecorableNode extends Node {
     }
 
     protected override completeTreeItem(item: TreeItem) {
-        item.resourceUri = this.uri;
-        item.id = `${this.uri.toString()}`;
+        item.resourceUri = this._uri;
+        item.id = this.createUri().toString();
         item.iconPath = this._iconPath;
     }
 
     public get uri() {
-        if (!this._uri) {
-            this._uri = this.createUri();
-        }
-
-        return this._uri;
+        return this._uri || this.createUri();
     }
 
     public get decoration() {

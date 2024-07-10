@@ -30,11 +30,5 @@ export default async function confirmReclaimObjectId(context: AssignmentIdContex
             return;
     }
 
-    if (fieldId) {
-        // TODO: Need to get the extendsId to reclaim fields
-        // if(Config.instance.storeExtensionValuesOrIdsOnBaseObject && ["tableextension", "enumextension"].includes(objectType.toLowerCase()))
-        // (context.objectType as unknown) = objectType.replace("extension", "");
-        // context.objectId = extendsId; // does not exist yet - where is the context coming from? From the LostNode?
-    }
     commands.executeCommand(NinjaCommand.ReclaimObjectId, context);
 }

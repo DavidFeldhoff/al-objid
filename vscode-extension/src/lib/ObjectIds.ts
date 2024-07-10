@@ -5,6 +5,7 @@ import { ALObject } from "@vjeko.com/al-parser-types-ninja";
 import { ParserConnector } from "../features/ParserConnector";
 import { getStorageId } from "./functions/getStorageId";
 import { ALObjectNamespace } from "./types/ALObjectNamespace";
+import { getAlObjectEntityIds } from "./functions/getAlObjectEntityIds";
 
 export async function getWorkspaceFolderFiles(uri: Uri): Promise<Uri[]> {
     let folderPath: string = uri.fsPath;
@@ -29,19 +30,14 @@ export async function updateActualConsumption(objects: ALObject[], consumption: 
         let typeAndId = await getStorageId(object);
         if (!typeAndId)
             continue;
-        if (object.fields) {
+
+        const fieldsOrValues = getAlObjectEntityIds(object);
+        if (fieldsOrValues.length > 0) {
             consumption[typeAndId] = [];
-            for (let field of object.fields) {
-                consumption[typeAndId].push(field.id);
+            for (let fieldOrValue of fieldsOrValues) {
+                consumption[typeAndId].push(fieldOrValue.id);
             }
             continue;
-        }
-
-        if (object.values) {
-            consumption[typeAndId] = [];
-            for (let value of object.values) {
-                consumption[typeAndId].push(value.id);
-            }
         }
     }
 }

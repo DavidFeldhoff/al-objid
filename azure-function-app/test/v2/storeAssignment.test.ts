@@ -70,6 +70,96 @@ describe("Testing function api/v2/storeAssignment", () => {
         expect(context.res.body._appInfo.codeunit).toEqual([50000, 50001, 50004]);
     });
 
+    it("Succeeds removing assignment for last ID", async () => {
+        const consumption = [50002];
+        const type = ALObjectType.codeunit;
+        const id = 50002;
+        const storage = new StubStorage().app()
+            .setConsumption(type, consumption)
+            .setLog([{ timestamp: 1, eventType: "getNext", user: "mock", data: { type: "table", id: 50002 } }]);
+        Mock.useStorage(storage.content);
+        const context = new Mock.Context(new Mock.Request("DELETE", { appId: storage.appId, type, id, user: "fake" }));
+        await storeAssignment(context, context.req);
+        expect(context.res).toBeStatus(200);
+        expect(context.res.body.updated).toStrictEqual(true);
+        expect(storage).toHaveChanged();
+        expect(Object.keys(storage.appInfo)).not.toContain(type);
+
+        expect(storage.log().length).toBe(1);
+        expect(storage.log()[0].eventType).toBe("removeAssignment");
+        expect(storage.log()[0].data).toEqual({ type: "codeunit", id });
+        expect(storage.log()[0].user).toBe("fake");
+
+        expect(context.bindings.notify).toBeDefined();
+        expect(context.bindings.notify.appId).toBe(storage.appId);
+
+        expect(context.res.body._appInfo).toBeDefined();
+        expect(context.res.body._appInfo._authorization).toBeUndefined();
+        expect(Object.keys(context.res.body._appInfo)).not.toContain("codeunit");
+    });
+
+    it("Succeeds removing assignment for last field ID", async () => {
+        const consumption = [50002];
+        const type = ALObjectType.table;
+        const id = 37;
+        const fieldStorageType = `${type}_${id}` as unknown as ALObjectType;
+        const fieldId = 50002;
+        const storage = new StubStorage().app()
+            .setConsumption(fieldStorageType, consumption)
+            .setLog([{ timestamp: 1, eventType: "getNext", user: "mock", data: { type: fieldStorageType, id: 50002 } }]);
+        Mock.useStorage(storage.content);
+        const context = new Mock.Context(new Mock.Request("DELETE", { appId: storage.appId, type, id, fieldId, user: "fake" }));
+        await storeAssignment(context, context.req);
+        expect(context.res).toBeStatus(200);
+        expect(context.res.body.updated).toStrictEqual(true);
+        expect(storage).toHaveChanged();
+        expect(Object.keys(storage.appInfo)).not.toContain(type);
+
+        expect(storage.log().length).toBe(1);
+        expect(storage.log()[0].eventType).toBe("removeAssignment");
+        expect(storage.log()[0].data).toEqual({ type: type, id, fieldId });
+        expect(storage.log()[0].user).toBe("fake");
+
+        expect(context.bindings.notify).toBeDefined();
+        expect(context.bindings.notify.appId).toBe(storage.appId);
+
+        expect(context.res.body._appInfo).toBeDefined();
+        expect(context.res.body._appInfo._authorization).toBeUndefined();
+        expect(Object.keys(context.res.body._appInfo)).not.toContain(type);
+    });
+
+    it("Succeeds removing assignment for field ID", async () => {
+        const consumption = [50000, 50001, 50002];
+        const type = ALObjectType.table;
+        const id = 37;
+        const fieldStorageType = `${type}_${id}` as unknown as ALObjectType;
+        const fieldId = 50001;
+        const storage = new StubStorage().app()
+            .setConsumption(fieldStorageType, consumption)
+            .setLog([{ timestamp: 1, eventType: "getNext", user: "mock", data: { type: fieldStorageType, id: 50002 } }]);
+        Mock.useStorage(storage.content);
+        const context = new Mock.Context(new Mock.Request("DELETE", { appId: storage.appId, type, id, fieldId, user: "fake" }));
+        await storeAssignment(context, context.req);
+        expect(context.res).toBeStatus(200);
+        expect(context.res.body.updated).toStrictEqual(true);
+        expect(storage).toHaveChanged();
+        expect(Object.keys(storage.appInfo)).toContain(fieldStorageType);
+        expect(storage.objectIds(fieldStorageType)).toEqual([50000, 50002]);
+
+        expect(storage.log().length).toBe(1);
+        expect(storage.log()[0].eventType).toBe("removeAssignment");
+        expect(storage.log()[0].data).toEqual({ type, id, fieldId });
+        expect(storage.log()[0].user).toBe("fake");
+
+        expect(context.bindings.notify).toBeDefined();
+        expect(context.bindings.notify.appId).toBe(storage.appId);
+
+        expect(context.res.body._appInfo).toBeDefined();
+        expect(context.res.body._appInfo._authorization).toBeUndefined();
+        expect(Object.keys(context.res.body._appInfo)).toContain(fieldStorageType);
+        expect(context.res.body._appInfo[fieldStorageType]).toEqual([50000, 50002]);
+    });
+
     it("Succeeds adding assignment on no previous consumption", async () => {
         const type = ALObjectType.codeunit;
         const id = 50006;

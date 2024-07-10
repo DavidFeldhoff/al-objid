@@ -7,9 +7,11 @@ import { RootNode } from "../../RootNode";
 import { ViewController } from "../../ViewController";
 import { CollisionsGroupNode } from "./CollisionsGroupNode";
 import { AssignedALObject } from "../../../../lib/types/AssignedALObject";
-import { ALObject, ALUniqueEntity } from "@vjeko.com/al-parser-types-ninja";
+import { ALObject } from "@vjeko.com/al-parser-types-ninja";
 import { LostGroupNode } from "./LostGroupNode";
 import { ALObjectNamespace } from "../../../../lib/types/ALObjectNamespace";
+import { CollisionFieldObjectTypeGroupNode } from "./fieldCollisions/CollisionFieldObjectTypeGroupNode";
+import { LostFieldObjectTypeGroupNode } from "./fieldLostNodes/LostFieldObjectTypeGroupNode";
 
 /**
  * Represents a root node for assignment explorer.
@@ -25,10 +27,12 @@ export class AssignmentExplorerRootNode extends RootNode implements AppAwareNode
     protected override readonly _tooltip: string;
     private _assigned: AssignedALObject[] = [];
     private _unassigned: ALObject[] = [];
+    private _unassignedFields: ALObjectNamespace[] = [];
+    private _lostFields: AssignedALObject[] = [];
     private _assignedPerApp: Record<string, AssignedALObject[]> = {};
     private _unassignedPerApp: Record<string, ALObject[]> = {};
-    private _unassignedFieldsPerApp: Record<string, { object: ALObjectNamespace, fields: ALUniqueEntity[] }[]> = {};
-    private _lostFieldsPerApp: Record<string, { objectType: string, objectId: number, fieldIds: number[] }[]> = {};
+    private _unassignedFieldsPerApp: Record<string, ALObjectNamespace[]> = {};
+    private _lostFieldsPerApp: Record<string, AssignedALObject[]> = {};
 
     constructor(app: ALApp, view: ViewController) {
         super(view);
@@ -59,7 +63,7 @@ export class AssignmentExplorerRootNode extends RootNode implements AppAwareNode
         this.populateAssignments(app.assignmentMonitor.assigned, app.assignmentMonitor.unassigned, app.assignmentMonitor.lostFieldIds, app.assignmentMonitor.unassignedFields, app.hash);
     }
 
-    private populateAssignments(assigned: AssignedALObject[], unassigned: ALObject[], lostFieldIds: { objectType: string, objectId: number, fieldIds: number[] }[], unassignedFieldIds: { object: ALObjectNamespace, fields: ALUniqueEntity[] }[], hash: string) {
+    private populateAssignments(assigned: AssignedALObject[], unassigned: ALObject[], lostFieldIds: AssignedALObject[], unassignedFieldIds: ALObjectNamespace[], hash: string) {
         this._assignedPerApp[hash] = assigned;
         this._unassignedPerApp[hash] = unassigned;
         this._lostFieldsPerApp[hash] = lostFieldIds;
@@ -77,6 +81,15 @@ export class AssignmentExplorerRootNode extends RootNode implements AppAwareNode
         for (let hash in this._unassignedPerApp) {
             this._unassigned.push(...this._unassignedPerApp[hash]);
         }
+
+        this._unassignedFields = [];
+        for (let hash in this._unassignedFieldsPerApp) {
+            this._unassignedFields.push(...this._unassignedFieldsPerApp[hash]);
+        }
+        this._lostFields = [];
+        for (let hash in this._lostFieldsPerApp) {
+            this._lostFields.push(...this._lostFieldsPerApp[hash]);
+        }
     }
 
     protected override getChildren(): Node[] {
@@ -86,6 +99,8 @@ export class AssignmentExplorerRootNode extends RootNode implements AppAwareNode
         if (!this._app.config.appPoolId) {
             children.push(new LostGroupNode(this, this._assigned));
         }
+        children.push(new CollisionFieldObjectTypeGroupNode(this, this._unassignedFields));
+        children.push(new LostFieldObjectTypeGroupNode(this, this._lostFields));
         return children;
     }
 
