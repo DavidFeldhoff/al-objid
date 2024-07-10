@@ -25,11 +25,11 @@ export class AssignmentExplorerRootNode extends RootNode implements AppAwareNode
     protected override readonly _label: string;
     protected override readonly _description: string;
     protected override readonly _tooltip: string;
-    private _assigned: AssignedALObject[] = [];
+    private _lost: AssignedALObject[] = [];
     private _unassigned: ALObject[] = [];
     private _unassignedFields: ALObjectNamespace[] = [];
     private _lostFields: AssignedALObject[] = [];
-    private _assignedPerApp: Record<string, AssignedALObject[]> = {};
+    private _lostPerApp: Record<string, AssignedALObject[]> = {};
     private _unassignedPerApp: Record<string, ALObject[]> = {};
     private _unassignedFieldsPerApp: Record<string, ALObjectNamespace[]> = {};
     private _lostFieldsPerApp: Record<string, AssignedALObject[]> = {};
@@ -60,11 +60,11 @@ export class AssignmentExplorerRootNode extends RootNode implements AppAwareNode
         }
 
         this.attachPoolApp(app);
-        this.populateAssignments(app.assignmentMonitor.assigned, app.assignmentMonitor.unassigned, app.assignmentMonitor.lostFieldIds, app.assignmentMonitor.unassignedFields, app.hash);
+        this.populateAssignments(app.assignmentMonitor.lost, app.assignmentMonitor.unassigned, app.assignmentMonitor.lostFieldIds, app.assignmentMonitor.unassignedFields, app.hash);
     }
 
-    private populateAssignments(assigned: AssignedALObject[], unassigned: ALObject[], lostFieldIds: AssignedALObject[], unassignedFieldIds: ALObjectNamespace[], hash: string) {
-        this._assignedPerApp[hash] = assigned;
+    private populateAssignments(lost: AssignedALObject[], unassigned: ALObject[], lostFieldIds: AssignedALObject[], unassignedFieldIds: ALObjectNamespace[], hash: string) {
+        this._lostPerApp[hash] = lost;
         this._unassignedPerApp[hash] = unassigned;
         this._lostFieldsPerApp[hash] = lostFieldIds;
         this._unassignedFieldsPerApp[hash] = unassignedFieldIds;
@@ -72,11 +72,11 @@ export class AssignmentExplorerRootNode extends RootNode implements AppAwareNode
     }
 
     private mergeAssignments() {
-        this._assigned = [];
+        this._lost = [];
         this._unassigned = [];
         //TODO: this._assigned not working for app pool as it should only show assigned objects of current app to see which one are lost
-        for (let hash in this._assignedPerApp) {
-            this._assigned.push(...this._assignedPerApp[hash]);
+        for (let hash in this._lostPerApp) {
+            this._lost.push(...this._lostPerApp[hash]);
         }
         for (let hash in this._unassignedPerApp) {
             this._unassigned.push(...this._unassignedPerApp[hash]);
@@ -96,11 +96,13 @@ export class AssignmentExplorerRootNode extends RootNode implements AppAwareNode
         let children: Node[] = [];
 
         children.push(new CollisionsGroupNode(this, this._unassigned));
-        if (!this._app.config.appPoolId) {
-            children.push(new LostGroupNode(this, this._assigned));
-        }
+        if (!this._app.config.appPoolId)
+            children.push(new LostGroupNode(this, this._lost));
+
         children.push(new CollisionFieldObjectTypeGroupNode(this, this._unassignedFields));
-        children.push(new LostFieldObjectTypeGroupNode(this, this._lostFields));
+        if (!this._app.config.appPoolId)
+            children.push(new LostFieldObjectTypeGroupNode(this, this._lostFields));
+
         return children;
     }
 
@@ -114,7 +116,7 @@ export class AssignmentExplorerRootNode extends RootNode implements AppAwareNode
 
     public attachPoolApp(app: ALApp) {
         this._subscriptions.push(app.assignmentMonitor.onAssignmentChanged((data) => {
-            this.populateAssignments(data.assigned, data.unassigned, data.lostFieldIds, data.unassignedFieldIds, app.hash);
+            this.populateAssignments(data.lost, data.unassigned, data.lostFieldIds, data.unassignedFieldIds, app.hash);
             this._view.update(this);
         }));
     }

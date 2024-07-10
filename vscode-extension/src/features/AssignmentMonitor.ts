@@ -16,11 +16,11 @@ import { getStorageIdLight } from "../lib/functions/getStorageIdLight";
 import { getAlObjectEntityIds } from "../lib/functions/getAlObjectEntityIds";
 
 export class AssigmentMonitor implements Disposable {
-    private _assigned: AssignedALObject[] = [];
+    private _lost: AssignedALObject[] = [];
     private _unassigned: ALObject[] = [];
     private _lostFieldIds: AssignedALObject[] = [];
     private _unassignedFields: ALObjectNamespace[] = [];
-    private readonly _onAssignmentChanged = new EventEmitter<{ assigned: AssignedALObject[], unassigned: ALObject[], lostFieldIds: AssignedALObject[], unassignedFieldIds: ALObjectNamespace[] }>();
+    private readonly _onAssignmentChanged = new EventEmitter<{ lost: AssignedALObject[], unassigned: ALObject[], lostFieldIds: AssignedALObject[], unassignedFieldIds: ALObjectNamespace[] }>();
     public readonly onAssignmentChanged = this._onAssignmentChanged.event;
     readonly _uri: Uri;
     readonly _hash: string;
@@ -157,19 +157,19 @@ export class AssigmentMonitor implements Disposable {
             return;
         }
 
-        const assignedObjects = consumptionToObjects(this._consumption);
+        const consumedObjects = consumptionToObjects(this._consumption);
 
         // Array of object IDs that are assigned (consumed) but do not exist in the workspace
-        const assigned = assignedObjects.filter(
-            assignedObject =>
-                !this._objects!.some(object => object.id === assignedObject.id && object.type === assignedObject.type)
+        const lost = consumedObjects.filter(
+            consumedObject =>
+                !this._objects!.some(object => object.id === consumedObject.id && object.type === consumedObject.type)
         );
-        this._assigned = assigned;
+        this._lost = lost;
 
         // Array of object IDs that are not assigned by Ninja but exist in the workspace
         const unassigned = this._objects.filter(
             object =>
-                !assignedObjects.some(
+                !consumedObjects.some(
                     assignedObject => object.id === assignedObject.id && object.type === assignedObject.type
                 ) && typeof object.id === "number"
         );
@@ -226,7 +226,7 @@ export class AssigmentMonitor implements Disposable {
             }
         }
 
-        this._onAssignmentChanged.fire({ assigned, unassigned, lostFieldIds: this._lostFieldIds, unassignedFieldIds: this._unassignedFields })
+        this._onAssignmentChanged.fire({ lost, unassigned, lostFieldIds: this._lostFieldIds, unassignedFieldIds: this._unassignedFields })
 
         this.clearDiagnostics();
 
@@ -301,8 +301,8 @@ export class AssigmentMonitor implements Disposable {
         }
     }
 
-    public get assigned() {
-        return this._assigned;
+    public get lost() {
+        return this._lost;
     }
 
     public get unassigned() {

@@ -45,7 +45,6 @@ export class RangeExplorerRootNode extends RootNode implements AppAwareNode, App
         this._hasLogical = this._app.config.idRanges.length > 0;
         this._hasObject = this._app.config.objectTypesSpecified.length > 0;
 
-        this._contextValues.push(ContextValues.Sync);
         if (!this._hasLogical && !this._hasObject) {
             this._contextValues.push(ContextValues.CopyRanges);
         }
