@@ -21,13 +21,13 @@ Work is in progress on two upcoming features, both of which heavily depend on tr
 ### Added
 
 - New setting `fieldAndValueIdsStayInsideObjectRange` which makes sure that if you've numbers per object range, e.g. per tableextension, that the field id's stay inside that range as well to avoid conflicts with others.
-- New setting `storeExtensionValuesOrIdsOnBaseObject`: Reserved object and field numbers are then stored on base table/enum level. Currently it's done incorrectly on tableextension or enumextension level which might lead to conflicts if you've multiple extensions on that same base table/enum. We strongly recommend to activate this setting, but then make sure to update your consumption afterwards e.g. using the `Ninja: Automatically Synchronize Object IDs for Entire Workspace` command. By activating this setting, the dependencies are loaded using the SymbolReference.json to find out in a fast way the object name -> object id relation. The performance impact should not be noticable.
-- Getting the consumption is now done based on app *or pool* level. This makes the `Range Explorer` and `Assignment Explorer` View accessible for App Pools as well.
+- New setting `storeExtensionValuesOrIdsOnBaseObject`: With this, reserved object and field numbers are stored on base table/enum level. Currently it's done on tableextension or enumextension level which might lead to conflicts if you've multiple extensions on that same base table/enum. We strongly recommend to activate this setting, but that requires that you update your consumption afterwards e.g. using the `Ninja: Automatically Synchronize Object IDs for Entire Workspace` command as basically all tableextension field and enumextension value ids are then not considered to be consumed anymore. By activating this setting, the dependencies are loaded using the SymbolReference.json to find out in a fast way the extended object name -> object id relation. The performance impact should not be noticable as it's using as much caching as possible and loads the dependencies already on vscode startup.
+- Getting the consumption is now done based on app *or pool* level. This makes the `Range Explorer` and `Assignment Explorer` View accessible for App Pools as well. The `Lost ids` part of the `Assignment Explorer` is not yet working for pools.
 - Unassigned and Lost Field diagnostics: In older versions you received diagnostics which showed up in the problems pane if you did not reserve an object id using Ninja. This happens now also for field ids. Furthermore these are warnings are shown in the `Assignment Explorer`.
 
 ### Changed
 
-- Enumextensions do not get the range from 1-4999 proposed anymore. This practice most likely would result in conflicts sooner or later. Stay inside your ranges instead.
+- Enumextensions do not get the range from 1-4999 proposed anymore. This practice most likely would result in conflicts sooner or later. Stay inside your id ranges instead or make use of the newly added `fieldAndValueIdsStayInsideObjectRange` setting.
 
 ### Fixed
 

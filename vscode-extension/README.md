@@ -257,8 +257,6 @@ public service, you may want to use your own back end instead. This is possible.
 
 These features are planned for future versions:
 
--   Up-to-date information about current object through status bar. You will be able to see if the
-    object you are working on is using a properly recorded ID assignment.
 -   Automatic fixes of various out-of-sync situations.
 -   Testability. Duh! I wanted to get this extension out to the world as soon as possible. Not that
     this is actually a feature, but for all you purists out there, it's coming.
