@@ -111,7 +111,7 @@ export const UI = {
                 `Only ${remaining} IDs remain for field ids for ${type} ${id} in ${name} app.${appendix}`,
                 "OK",
                 LABELS.BUTTON_DONT_SHOW_AGAIN
-            )
+            );
         },
         showDisabledOnlyForAppAndType: (name: string, type: string) =>
             window.showInformationMessage(
@@ -125,7 +125,7 @@ export const UI = {
             return window.showInformationMessage(
                 `This warning is now disabled for ${type.includes('enum') ? 'value' : 'field'} IDs of ${type} ${id} in ${name} app. You will keep seeing it for other objects and other apps. If you want to disable it completely, switch off the "Show Range Warnings" configuration setting.`,
                 "OK"
-            )
+            );
         },
         showNoMoreNumbersWarning: async () =>
             window.showWarningMessage(

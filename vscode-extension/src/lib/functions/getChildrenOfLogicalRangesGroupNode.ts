@@ -8,7 +8,7 @@ export function getChildrenOfLogicalRangesGroupNode(logicalRangeNames: string[],
         const ranges = logicalRanges.filter(
             range => getDescriptionOfRange(range).toLowerCase().trim() === compareName
         );
-        const notUsingLogicalNames = name === DEFAULT_RANGE_DESCRIPTION && ranges.length === logicalRanges.length
+        const notUsingLogicalNames = name === DEFAULT_RANGE_DESCRIPTION && ranges.length === logicalRanges.length;
         return ranges.length === 1
             ? newNamedNode(ranges[0])
             : notUsingLogicalNames

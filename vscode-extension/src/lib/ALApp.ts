@@ -83,7 +83,7 @@ export class ALApp implements Disposable, BackEndAppInfo {
                 return Array.isArray(packageCachePath) ? packageCachePath : [packageCachePath];
             }
         }
-        return extensions.getExtension(MSFT_EXTENSION_ID)?.packageJSON.contributes?.configuration?.properties['al.packageCachePath']?.default || ["./.alpackages "]
+        return extensions.getExtension(MSFT_EXTENSION_ID)?.packageJSON.contributes?.configuration?.properties['al.packageCachePath']?.default || ["./.alpackages "];
     }
 
     private createObjectIdConfig(): ObjIdConfig {
@@ -240,12 +240,12 @@ export class ALApp implements Disposable, BackEndAppInfo {
         }
         const appPackages = this._dependencies.filter(appPackage => appPackage !== undefined) as ALAppPackage[];
 
-        const dependencies: ALAppPackage[] = []
-        const uniqueApps = new Set(appPackages.map(p => p.appId))
+        const dependencies: ALAppPackage[] = [];
+        const uniqueApps = new Set(appPackages.map(p => p.appId));
         uniqueApps.forEach(appId => {
-            const appVersions = appPackages.filter(p => p.appId === appId)
-            const latestVersion = appVersions.reduce((prev, current) => versionCompare(prev.version, current.version) >= 0 ? prev : current)
-            dependencies.push(latestVersion)
+            const appVersions = appPackages.filter(p => p.appId === appId);
+            const latestVersion = appVersions.reduce((prev, current) => versionCompare(prev.version, current.version) >= 0 ? prev : current);
+            dependencies.push(latestVersion);
         });
         return dependencies;
     }
@@ -316,7 +316,7 @@ export class ALApp implements Disposable, BackEndAppInfo {
      * @returns Boolean value indicating whether this ALApp instance represents the specified workspace folder.
      */
     public isFolder(folder: WorkspaceFolder): boolean {
-        return folder.uri.fsPath == this._uri.fsPath;
+        return folder.uri.fsPath === this._uri.fsPath;
     }
 
     public dispose() {

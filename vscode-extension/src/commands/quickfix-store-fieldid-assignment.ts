@@ -17,7 +17,7 @@ export async function QuickFixStoreFieldIdAssignment(app: ALApp, object: { objec
         return;
     }
 
-    const { type, id } = getStorageIdLight(object.object)
+    const { type, id } = getStorageIdLight(object.object);
 
     commands.executeCommand(NinjaCommand.StoreIdAssignment, {
         app,

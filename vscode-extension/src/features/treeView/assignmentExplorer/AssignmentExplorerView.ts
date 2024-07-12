@@ -27,7 +27,7 @@ export class AssignmentExplorerView extends NinjaTreeView {
         const existingNode = this._rootNodes.find(node => node.app.appId === app.appId);
         if (existingNode) {
             // We are inside an app pool, obviously
-            existingNode.attachPoolApp(app)
+            existingNode.attachPoolApp(app);
             return;
         }
 

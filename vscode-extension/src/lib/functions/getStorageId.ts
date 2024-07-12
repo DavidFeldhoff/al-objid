@@ -49,7 +49,7 @@ async function getFinalParameters(arg1: string | ALObject, id?: number, document
             extends: extendedObjectDetails?.extends,
             extendsNamespace: extendedObjectDetails?.extendsNamespace,
             path: document!.uri!.fsPath
-        }
+        };
     } else {
         const alObject = arg1;
         object.path = alObject.path;
@@ -60,12 +60,12 @@ async function getFinalParameters(arg1: string | ALObject, id?: number, document
             object.extendsNamespace = (alObject as ALObjectNamespace).extendsNamespace;
         } else {
             // temporary fix as the parser does not return the right extended object name and namespace
-            const extendInfos = await ParserConnector.instance.getExtendInfos(alObject.type, alObject.path)
+            const extendInfos = await ParserConnector.instance.getExtendInfos(alObject.type, alObject.path);
             object.extends = extendInfos?.extends;
             object.extendsNamespace = extendInfos?.extendsNamespace;
         }
     }
-    output.log(`[Get Storage Id] Found base object namespace for ${object.path}: ${object.extendsNamespace}`, LogLevel.Verbose)
+    output.log(`[Get Storage Id] Found base object namespace for ${object.path}: ${object.extendsNamespace}`, LogLevel.Verbose);
     return object;
 }
 /**
@@ -91,8 +91,8 @@ const baseObjectLookupTable: Record<string, number> = {};
  * @param extensionfsPath the fspath of the extension document
  */
 async function getExtendedId(extensionObjectType: string, baseObjectName: string, extensionfsPath: string, baseObjectNamespace: string): Promise<number | null> {
-    extensionObjectType = extensionObjectType.toLowerCase()
-    baseObjectName = baseObjectName.replace(/"/g, '')
+    extensionObjectType = extensionObjectType.toLowerCase();
+    baseObjectName = baseObjectName.replace(/"/g, '');
 
     const baseObjectType = extensionObjectType.replace("extension", "");
     const fullQualifiedObjectName = `${baseObjectNamespace ? `${baseObjectNamespace}.` : ""}${baseObjectName}`;
@@ -100,33 +100,33 @@ async function getExtendedId(extensionObjectType: string, baseObjectName: string
     if (resolvedId) {
         return resolvedId;
     }
-    const app = WorkspaceManager.instance.alApps.find(app => dirname(extensionfsPath).startsWith(dirname(app.uri.fsPath)))
+    const app = WorkspaceManager.instance.alApps.find(app => dirname(extensionfsPath).startsWith(dirname(app.uri.fsPath)));
     if (!app) {
-        output.log(`[Get Extended Id] Error: Could not find app for ${extensionfsPath}. Available apps were ${WorkspaceManager.instance.alApps.map(app => app.uri.fsPath).join(', ')}`, LogLevel.Info)
+        output.log(`[Get Extended Id] Error: Could not find app for ${extensionfsPath}. Available apps were ${WorkspaceManager.instance.alApps.map(app => app.uri.fsPath).join(', ')}`, LogLevel.Info);
         return null;
     }
     const dependencies = await app.getDependencies();
     for (const dependencyPackage of dependencies) {
-        const baseObject = findBaseObject(dependencyPackage.symbolReference, baseObjectType, baseObjectName, baseObjectNamespace)
+        const baseObject = findBaseObject(dependencyPackage.symbolReference, baseObjectType, baseObjectName, baseObjectNamespace);
         if (baseObject) {
-            output.log(`[Get Extended Id] Found base object for ${baseObjectType} ${fullQualifiedObjectName} in ${dependencyPackage.symbolReference.Name} with id ${baseObject.id}`, LogLevel.Verbose)
+            output.log(`[Get Extended Id] Found base object for ${baseObjectType} ${fullQualifiedObjectName} in ${dependencyPackage.symbolReference.Name} with id ${baseObject.id}`, LogLevel.Verbose);
             baseObjectLookupTable[`${baseObjectType} ${fullQualifiedObjectName}`] = baseObject.id;
             return baseObject.id;
         }
     }
-    output.log(`[Get Extended Id] Error: Could not find base object for ${baseObjectType} ${fullQualifiedObjectName}. Checked the following dependency files: ${dependencies.map(dep => dep.fsPath).join(', ')}`, LogLevel.Info)
+    output.log(`[Get Extended Id] Error: Could not find base object for ${baseObjectType} ${fullQualifiedObjectName}. Checked the following dependency files: ${dependencies.map(dep => dep.fsPath).join(', ')}`, LogLevel.Info);
     return null;
 }
 
 function findBaseObject(symbolReferenceRoot: SymbolReferenceRoot, baseObjectType: string, baseObjectName: string, baseObjectNamespace: string): { name: string, id: number, namespace: string } | undefined {
     const namespaceParts = baseObjectNamespace.split('.').filter(part => part !== "");
-    output.log(`[Find Base Object] Search ${symbolReferenceRoot.Name}`, LogLevel.Verbose)
+    output.log(`[Find Base Object] Search ${symbolReferenceRoot.Name}`, LogLevel.Verbose);
     let symRef: SymbolReferenceRoot | SymbolReferenceNamespace | undefined = symbolReferenceRoot;
     for (const namespacePart of namespaceParts) {
         symRef = symRef?.Namespaces?.find(ns => ns.Name === namespacePart) || undefined;
     }
     if (!symRef) {
-        output.log(`[Find Base Object]Could not find namespace ${baseObjectNamespace} in ${symbolReferenceRoot.Name}`, LogLevel.Verbose)
+        output.log(`[Find Base Object]Could not find namespace ${baseObjectNamespace} in ${symbolReferenceRoot.Name}`, LogLevel.Verbose);
         return undefined;
     }
     let objects: SymbolReferenceObject[] = [];
@@ -142,7 +142,7 @@ function findBaseObject(symbolReferenceRoot: SymbolReferenceRoot, baseObjectType
     }
     const object = objects.find(obj => obj.Name.replace(/"/g, "").toLowerCase() === baseObjectName.replace(/"/g, "").toLowerCase());
     if (!object) {
-        output.log(`[Find Base Object] Error: Could not find object ${baseObjectName} in ${symbolReferenceRoot.Name}`, LogLevel.Verbose)
+        output.log(`[Find Base Object] Error: Could not find object ${baseObjectName} in ${symbolReferenceRoot.Name}`, LogLevel.Verbose);
         return undefined;
     }
     return { name: object.Name, id: object.Id, namespace: baseObjectNamespace };

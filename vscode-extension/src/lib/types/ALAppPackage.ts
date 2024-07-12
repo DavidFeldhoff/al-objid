@@ -12,7 +12,7 @@ export class ALAppPackage {
     private _manifest!: NavxManifest;
     private _symbolReference!: SymbolReferenceRoot;
     private _fsPath!: string;
-    private _fileLastModified!: Date
+    private _fileLastModified!: Date;
     private _flattenedCache: { type: ALObjectType, id: number, name: string, namespace: string }[] = [];
     private constructor(manifest: NavxManifest, symbolReferenceSchema: SymbolReferenceRoot, fsPath: string, fileLastModified: Date) {
         this.assignProperties(manifest, symbolReferenceSchema, fsPath, fileLastModified);
@@ -102,10 +102,10 @@ export class ALAppPackage {
             if (objectsOfInterest.includes(key)) {
                 const objs = (symbolReference as unknown as unknown[])[key as keyof unknown[]] as SymbolReferenceObject[];
                 objs.forEach(obj => {
-                    const type = this.symbolReferenceTypeToObjectType(key)
+                    const type = this.symbolReferenceTypeToObjectType(key);
                     if (type)
-                        objects.push({ type, id: obj.Id, name: obj.Name, namespace: currentNamespace })
-                })
+                        objects.push({ type, id: obj.Id, name: obj.Name, namespace: currentNamespace });
+                });
             }
         }
         const namespaces = symbolReference.Namespaces || [];

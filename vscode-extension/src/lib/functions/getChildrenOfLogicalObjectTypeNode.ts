@@ -20,7 +20,7 @@ export function getChildrenOfLogicalObjectTypeNode(logicalRanges: NinjaALRange[]
         const ranges = logicalRanges.filter(
             range => getDescriptionOfRange(range).toLowerCase().trim() === compareName
         );
-        const notUsingLogicalNames = name === DEFAULT_RANGE_DESCRIPTION && ranges.length === logicalRanges.length
+        const notUsingLogicalNames = name === DEFAULT_RANGE_DESCRIPTION && ranges.length === logicalRanges.length;
         ranges.length === 1
             ? newConsumptionNode(ranges[0], true)
             : notUsingLogicalNames

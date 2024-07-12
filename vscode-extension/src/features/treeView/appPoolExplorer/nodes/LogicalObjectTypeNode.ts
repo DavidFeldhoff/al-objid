@@ -33,7 +33,7 @@ export class LogicalObjectTypeNode extends ObjectTypeNode {
         const children: Node[] = [];
         getChildrenOfLogicalObjectTypeNode(this.rootNode.objectRanges[this._objectType],
             (range: NinjaALRange, includeNames: boolean) => children.push(new LogicalObjectTypeRangeConsumptionNode(this, this._objectType, range, includeNames)),
-            (name: string, ranges: NinjaALRange[]) => children.push(new LogicalObjectTypeRangesNode(this, this._objectType, name, ranges)))
+            (name: string, ranges: NinjaALRange[]) => children.push(new LogicalObjectTypeRangesNode(this, this._objectType, name, ranges)));
         return children;
     }
 }

@@ -182,7 +182,7 @@ export class AssigmentMonitor implements Disposable {
             for (const consumedObject of consumedObjectsAndFields) {
                 const objects = this._objects.filter(object => {
                     const storageId = getStorageIdLight(object);
-                    return storageId.type === consumedObject.type && storageId.id === consumedObject.objectId
+                    return storageId.type === consumedObject.type && storageId.id === consumedObject.objectId;
                 });
                 if (objects.length === 0) {
                     this._lostFieldIds.push({ type: consumedObject.type, id: consumedObject.objectId, fieldOrValueIds: consumedObject.ids });
@@ -217,16 +217,16 @@ export class AssigmentMonitor implements Disposable {
                     if (unassignedFieldIds.length > 0) {
                         const objCopy: ALObjectNamespace = JSON.parse(JSON.stringify(object));
                         if (objCopy.fields)
-                            objCopy.fields = unassignedFieldIds
+                            objCopy.fields = unassignedFieldIds;
                         else
-                            objCopy.values = unassignedFieldIds
+                            objCopy.values = unassignedFieldIds;
                         this._unassignedFields.push(objCopy);
                     }
                 }
             }
         }
 
-        this._onAssignmentChanged.fire({ lost, unassigned, lostFieldIds: this._lostFieldIds, unassignedFieldIds: this._unassignedFields })
+        this._onAssignmentChanged.fire({ lost, unassigned, lostFieldIds: this._lostFieldIds, unassignedFieldIds: this._unassignedFields });
 
         this.clearDiagnostics();
 
