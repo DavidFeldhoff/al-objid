@@ -1,22 +1,22 @@
 import { Disposable } from "vscode";
-import { AppCommandContext } from "../../../../commands/contexts/AppCommandContext";
+import { AppsCommandContext } from "../../../../commands/contexts/AppsCommandContext";
 import { ALApp } from "../../../../lib/ALApp";
 import { ConsumptionCache } from "../../../ConsumptionCache";
-import { AppAwareNode } from "../../AppAwareNode";
+import { AppsAwareNode } from "../../AppsAwareNode";
 import { ContextValues } from "../../ContextValues";
 import { Node } from "../../Node";
 import { RootNode } from "../../RootNode";
 import { ViewController } from "../../ViewController";
-import { LogicalRangesGroupNode } from "./LogicalRangesGroupNode";
-import { ObjectRangesGroupNode } from "./ObjectRangesGroupNode";
-import { PhysicalRangeNode } from "./PhysicalRangeNode";
-import { PhysicalRangesGroupNode } from "./PhysicalRangesGroupNode";
+import { LogicalRangesGroupNode } from "./logicalRanges/LogicalRangesGroupNode";
+import { ObjectRangesGroupNode } from "./objectTypes/ObjectRangesGroupNode";
+import { PhysicalRangeNode } from "./physicalRanges/PhysicalRangeNode";
+import { PhysicalRangesGroupNode } from "./physicalRanges/PhysicalRangesGroupNode";
 
 /**
  * Represents a root node for range explorer.
  */
-export class RangeExplorerRootNode extends RootNode implements AppAwareNode, AppCommandContext, Disposable {
-    protected readonly _app: ALApp;
+export class RangeExplorerRootNode extends RootNode implements AppsAwareNode, AppsCommandContext, Disposable {
+    protected readonly _apps: ALApp[];
     private readonly _hasLogical: boolean;
     private readonly _hasObject: boolean;
     private readonly _subscription: Disposable;
@@ -28,7 +28,7 @@ export class RangeExplorerRootNode extends RootNode implements AppAwareNode, App
     constructor(app: ALApp, view: ViewController) {
         super(view);
 
-        this._app = app;
+        this._apps = [app];
         if (app.config.appPoolId) {
             this._label = `App Pool ${app.config.appPoolId.substring(0, 8)}`;
             this._description = "";
@@ -42,8 +42,8 @@ export class RangeExplorerRootNode extends RootNode implements AppAwareNode, App
         }
         this._contextValues.push(ContextValues.Sync);
 
-        this._hasLogical = this._app.config.idRanges.length > 0;
-        this._hasObject = this._app.config.objectTypesSpecified.length > 0;
+        this._hasLogical = this._apps.flatMap(app => app.config.idRanges).length > 0;
+        this._hasObject = this._apps.flatMap(app => app.config.objectTypesSpecified).length > 0;
 
         if (!this._hasLogical && !this._hasObject) {
             this._contextValues.push(ContextValues.CopyRanges);
@@ -54,12 +54,17 @@ export class RangeExplorerRootNode extends RootNode implements AppAwareNode, App
             this._view.update(this);
         });
     }
+    attachPoolApp(app: ALApp) {
+        this._apps.push(app);
+        this._contextValues.filter(value => value !== ContextValues.CopyRanges);
+        this._view.update(this);
+    }
 
     protected override getChildren(): Node[] {
         let children: Node[] = [];
 
         if (!this._hasLogical && !this._hasObject) {
-            children = this._app.manifest.idRanges.map(range => new PhysicalRangeNode(this, range));
+            children = this._apps.flatMap(app => app.manifest.idRanges).map(range => new PhysicalRangeNode(this, range));
         } else {
             children = [new PhysicalRangesGroupNode(this)];
         }
@@ -74,8 +79,8 @@ export class RangeExplorerRootNode extends RootNode implements AppAwareNode, App
         return children;
     }
 
-    public get app() {
-        return this._app;
+    public get apps() {
+        return this._apps;
     }
 
     public dispose(): void {

@@ -1,6 +1,6 @@
 import { Disposable } from "vscode";
 import { ALApp } from "../../../../lib/ALApp";
-import { AppAwareNode } from "../../AppAwareNode";
+import { AppsAwareNode } from "../../AppsAwareNode";
 import { ContextValues } from "../../ContextValues";
 import { Node } from "../../Node";
 import { RootNode } from "../../RootNode";
@@ -16,8 +16,8 @@ import { LostFieldObjectTypeGroupNode } from "./fieldLostNodes/LostFieldObjectTy
 /**
  * Represents a root node for assignment explorer.
  */
-export class AssignmentExplorerRootNode extends RootNode implements AppAwareNode, Disposable {
-    protected readonly _app: ALApp;
+export class AssignmentExplorerRootNode extends RootNode implements AppsAwareNode, Disposable {
+    protected readonly _apps: ALApp[];
     private readonly _hasLogical: boolean;
     private readonly _hasObject: boolean;
     private readonly _subscriptions: Disposable[] = [];
@@ -37,7 +37,7 @@ export class AssignmentExplorerRootNode extends RootNode implements AppAwareNode
     constructor(app: ALApp, view: ViewController) {
         super(view);
 
-        this._app = app;
+        this._apps = [app];
         if (app.config.appPoolId) {
             this._label = `App Pool ${app.config.appPoolId.substring(0, 8)}`;
             this._description = "";
@@ -51,8 +51,8 @@ export class AssignmentExplorerRootNode extends RootNode implements AppAwareNode
         }
         this._contextValues.push(ContextValues.Sync);
 
-        this._hasLogical = this._app.config.idRanges.length > 0;
-        this._hasObject = this._app.config.objectTypesSpecified.length > 0;
+        this._hasLogical = this._apps.flatMap(app => app.config.idRanges).length > 0;
+        this._hasObject = this._apps.flatMap(app => app.config.objectTypesSpecified).length > 0;
 
         this._contextValues.push(ContextValues.Sync);
         if (!this._hasLogical && !this._hasObject) {
@@ -96,25 +96,22 @@ export class AssignmentExplorerRootNode extends RootNode implements AppAwareNode
         let children: Node[] = [];
 
         children.push(new CollisionsGroupNode(this, this._unassigned));
-        if (!this._app.config.appPoolId)
+        if (!this._apps.some(app => app.config.appPoolId))
             children.push(new LostGroupNode(this, this._lost));
 
         children.push(new CollisionFieldObjectTypeGroupNode(this, this._unassignedFields));
-        if (!this._app.config.appPoolId)
+        if (!this._apps.some(app => app.config.appPoolId))
             children.push(new LostFieldObjectTypeGroupNode(this, this._lostFields));
 
         return children;
     }
 
-    public get app() {
-        return this._app;
-    }
-
-    public get appId() {
-        return this.app.appId;
+    public get apps() {
+        return this._apps;
     }
 
     public attachPoolApp(app: ALApp) {
+        this._apps.push(app);
         this._subscriptions.push(app.assignmentMonitor.onAssignmentChanged((data) => {
             this.populateAssignments(data.lost, data.unassigned, data.lostFieldIds, data.unassignedFieldIds, app.hash);
             this._view.update(this);

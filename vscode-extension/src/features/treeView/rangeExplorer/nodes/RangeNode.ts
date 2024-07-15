@@ -5,7 +5,7 @@ import { ALRange } from "../../../../lib/types/ALRange";
 import { ConsumptionDataOfObject } from "../../../../lib/types/ConsumptionDataOfObject";
 import { NinjaALRange } from "../../../../lib/types/NinjaALRange";
 import { ConsumptionCache } from "../../../ConsumptionCache";
-import { AppAwareNode, AppAwareDescendantNode } from "../../AppAwareNode";
+import { AppsAwareNode, AppsAwareDescendantNode } from "../../AppsAwareNode";
 import { DecorationSeverity } from "../../DecorationSeverity";
 import { Node } from "../../Node";
 import { ObjectTypeConsumptionNode } from "./ObjectTypeConsumptionNode";
@@ -14,7 +14,7 @@ import { ObjectTypeConsumptionNode } from "./ObjectTypeConsumptionNode";
  * Abstract node that displays range (from..to) as label and typically includes children that represent
  * consumption per object type.
  */
-export abstract class RangeNode<T extends ALRange> extends AppAwareDescendantNode {
+export abstract class RangeNode<T extends ALRange> extends AppsAwareDescendantNode {
     private readonly _childNodes: Node[];
     private _noConsumption = false;
 
@@ -29,14 +29,14 @@ export abstract class RangeNode<T extends ALRange> extends AppAwareDescendantNod
     protected abstract _includeLogicalNameInDescription: boolean;
     protected abstract _includeLogicalNameInLabel: boolean;
 
-    constructor(parent: AppAwareNode, range: T) {
+    constructor(parent: AppsAwareNode, range: T) {
         super(parent);
         this._range = range;
         this._label = `${range.from}..${range.to}`;
         this._tooltip = `From ${range.from} to ${range.to}`;
         this._uriPathPart = `${range.from}-${range.to}`;
         // Consumptions are done based on pool or app hash, so appId (hash or pool hash) is the right choice here
-        this._consumption = ConsumptionCache.instance.getObjectConsumption(this.app.appId) || {};
+        this._consumption = this.apps.length > 0 && ConsumptionCache.instance.getObjectConsumption(this.apps[0].appId) || {} as unknown as ConsumptionDataOfObject;
         this._childNodes = this.calculateChildren();
     }
 

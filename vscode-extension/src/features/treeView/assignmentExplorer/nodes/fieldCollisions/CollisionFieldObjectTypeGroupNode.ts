@@ -1,6 +1,6 @@
 import { MarkdownString, TreeItemCollapsibleState } from "vscode";
 import { NinjaIcon } from "../../../../../lib/NinjaIcon";
-import { AppAwareNode, AppAwareDescendantNode } from "../../../AppAwareNode";
+import { AppsAwareNode, AppsAwareDescendantNode } from "../../../AppsAwareNode";
 import { Node } from "../../../Node";
 import { ALObjectType } from "../../../../../lib/types/ALObjectType";
 import { CollisionObjectTypeNode } from "../CollisionObjectTypeNode";
@@ -12,7 +12,7 @@ import { CollisionFieldObjectTypeNode } from "./CollisionFieldObjectTypeNode";
  *
  * Contains children of {@link CollisionObjectTypeNode} type.
  */
-export class CollisionFieldObjectTypeGroupNode extends AppAwareDescendantNode {
+export class CollisionFieldObjectTypeGroupNode extends AppsAwareDescendantNode {
     private readonly _unassigned: ALObjectNamespace[];
     protected override _iconPath = NinjaIcon["al-collision"];
     protected override _uriPathPart = "collisionsFields";
@@ -23,7 +23,7 @@ export class CollisionFieldObjectTypeGroupNode extends AppAwareDescendantNode {
         "Table field or enum value IDs that were **manually assigned** and are **not stored** in the back end.\n\nYou should avoid manually assigning IDs as they are not stored in the back end and can be overwritten by other developers.\n\n[Learn more...](https://github.com/vjekob/al-objid/wiki/Does-everyone-on-my-team-need-to-use-Ninja%3F)"
     );
 
-    constructor(parent: AppAwareNode, unassigned: ALObjectNamespace[]) {
+    constructor(parent: AppsAwareNode, unassigned: ALObjectNamespace[]) {
         super(parent);
         this._unassigned = unassigned;
 

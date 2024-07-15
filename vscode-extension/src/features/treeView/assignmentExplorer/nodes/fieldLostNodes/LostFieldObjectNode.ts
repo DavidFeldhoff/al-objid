@@ -1,6 +1,6 @@
 import { TreeItemLabel, TreeItemCollapsibleState, TreeItem, Uri } from "vscode";
 import { getSingleIconPath } from "../../../../../lib/NinjaIcon";
-import { AppAwareDescendantNode, AppAwareNode } from "../../../AppAwareNode";
+import { AppsAwareDescendantNode, AppsAwareNode } from "../../../AppsAwareNode";
 import { AssignedALObject } from "../../../../../lib/types/AssignedALObject";
 import { Node } from "../../../Node";
 import { LostFieldNode } from "./LostFieldNode";
@@ -10,7 +10,7 @@ import { LostFieldNode } from "./LostFieldNode";
  * 
  * Contains children of {@link LostFieldNode} type.
  */
-export class LostFieldObjectNode extends AppAwareDescendantNode {
+export class LostFieldObjectNode extends AppsAwareDescendantNode {
     private readonly _object: AssignedALObject;
     protected override readonly _iconPath = getSingleIconPath("al-lost");
     protected _uriPathPart: string;
@@ -20,7 +20,7 @@ export class LostFieldObjectNode extends AppAwareDescendantNode {
     protected _includeLogicalNameInLabel = false;
     private _entityName: string;
 
-    constructor(parent: AppAwareNode, object: AssignedALObject) {
+    constructor(parent: AppsAwareNode, object: AssignedALObject) {
         super(parent);
         this._object = object;
         if (object.possiblePaths && object.possiblePaths.length === 1)

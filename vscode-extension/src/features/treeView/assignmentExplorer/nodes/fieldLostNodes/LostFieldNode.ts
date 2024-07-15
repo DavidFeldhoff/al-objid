@@ -1,16 +1,17 @@
 import { TreeItemLabel, TreeItemCollapsibleState, Uri, TreeItem } from "vscode";
 import { getSingleIconPath } from "../../../../../lib/NinjaIcon";
-import { AppAwareDescendantNode, AppAwareNode } from "../../../AppAwareNode";
+import { AppsAwareDescendantNode, AppsAwareNode } from "../../../AppsAwareNode";
 import { DecorationSeverity } from "../../../DecorationSeverity";
 import { AssignedALObject } from "../../../../../lib/types/AssignedALObject";
 import { ContextValues } from "../../../ContextValues";
 import { AssignmentIdContext } from "../../../../../commands/contexts/AssignmentContext";
 import { ALObjectType } from "../../../../../lib/types/ALObjectType";
+import { ALApp } from "../../../../../lib/ALApp";
 
 /**
  * Represents a lost object node defined as an object ID that was previously assigned by Ninja, but is no longer in use.
  */
-export class LostFieldNode extends AppAwareDescendantNode implements AssignmentIdContext {
+export class LostFieldNode extends AppsAwareDescendantNode implements AssignmentIdContext {
     private readonly _object: AssignedALObject;
     private readonly _fieldOrValueId: number;
     protected override readonly _iconPath = getSingleIconPath("al-lost");
@@ -20,7 +21,7 @@ export class LostFieldNode extends AppAwareDescendantNode implements AssignmentI
     protected _includeLogicalNameInDescription = false;
     protected _includeLogicalNameInLabel = false;
 
-    constructor(parent: AppAwareNode, object: AssignedALObject, fieldOrValueId: number) {
+    constructor(parent: AppsAwareNode, object: AssignedALObject, fieldOrValueId: number) {
         super(parent);
         this._object = object;
         this._fieldOrValueId = fieldOrValueId;
@@ -34,7 +35,9 @@ export class LostFieldNode extends AppAwareDescendantNode implements AssignmentI
         this._decoration = {
             severity: DecorationSeverity.inactive,
         };
-        this._contextValues.push(ContextValues.ReclaimId);
+
+        if (this.apps.every(app => app.config.appPoolId === this.apps[0].config.appPoolId))
+            this._contextValues.push(ContextValues.ReclaimId);
     }
 
     protected override completeTreeItem(item: TreeItem): void {
@@ -47,6 +50,11 @@ export class LostFieldNode extends AppAwareDescendantNode implements AssignmentI
                 ],
                 title: "",
             };
+    }
+
+    // AssignmentIdContext implementation
+    public get app(): ALApp {
+        return this.apps[0];
     }
 
     public get objectType(): ALObjectType {

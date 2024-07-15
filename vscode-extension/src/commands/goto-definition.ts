@@ -174,7 +174,7 @@ async function goToConfiguration({ goto }: GoToDefinitionCommandContext<NinjaALR
             objectTypeRanges = await getObjectTypeRanges(uri, goto.objectType!);
             const logicalObjectTypeRange = objectTypeRanges?.children.find(
                 c =>
-                    c.children.find(c => c.name === "description" && c.detail === goto.range!.description) &&
+                    c.children.find(c => (!goto.range?.description) || (c.name === "description" && c.detail === goto.range!.description)) &&
                     c.children.find(c => c.name === "from" && c.detail === from) &&
                     c.children.find(c => c.name === "to" && c.detail === to)
             );

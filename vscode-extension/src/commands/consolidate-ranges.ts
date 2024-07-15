@@ -3,12 +3,17 @@ import { ALRange } from "../lib/types/ALRange";
 import { UI } from "../lib/UI";
 import { WorkspaceManager } from "../features/WorkspaceManager";
 import { ALApp } from "../lib/ALApp";
-import { AppCommandContext } from "./contexts/AppCommandContext";
+import { AppsCommandContext } from "./contexts/AppsCommandContext";
 import { Telemetry } from "../lib/Telemetry";
 import { NinjaCommand } from "./commands";
+import { window } from "vscode";
 
-export async function consolidateRanges(context: AppCommandContext) {
-    const app = context?.app || (await WorkspaceManager.instance.selectWorkspaceFolder());
+export async function consolidateRanges(context: AppsCommandContext) {
+    let app;
+    if (context?.apps)
+        app = context.apps.length === 1 ? context.apps[0] : (await window.showQuickPick(context.apps.map(app => { return { label: app.manifest.name, node: app }; }), { placeHolder: 'For which app do you want to consolidate the ranges?' }))?.node;
+    else
+        app = await WorkspaceManager.instance.selectWorkspaceFolder();
     if (!app) {
         return;
     }

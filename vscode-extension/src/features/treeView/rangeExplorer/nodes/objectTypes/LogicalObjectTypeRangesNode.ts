@@ -1,16 +1,16 @@
 import { LogicalObjectTypeRangeConsumptionNode } from "./LogicalObjectTypeRangeConsumptionNode";
-import { ThemeIcon, TreeItemLabel, TreeItemCollapsibleState } from "vscode";
-import { NinjaALRange } from "../../../../lib/types/NinjaALRange";
-import { AppAwareDescendantNode, AppAwareNode } from "../../AppAwareNode";
-import { Node } from "../../Node";
+import { TreeItemLabel, TreeItemCollapsibleState } from "vscode";
+import { NinjaALRange } from "../../../../../lib/types/NinjaALRange";
+import { AppsAwareDescendantNode, AppsAwareNode } from "../../../AppsAwareNode";
+import { Node } from "../../../Node";
 import {
     GoToDefinitionCommandContext,
     GoToDefinitionContext,
     GoToDefinitionFile,
     GoToDefinitionType,
-} from "../../../../commands/contexts/GoToDefinitionCommandContext";
-import { ContextValues } from "../../ContextValues";
-import { NinjaIcon } from "../../../../lib/NinjaIcon";
+} from "../../../../../commands/contexts/GoToDefinitionCommandContext";
+import { ContextValues } from "../../../ContextValues";
+import { NinjaIcon } from "../../../../../lib/NinjaIcon";
 
 /**
  * Represents a logical range defined for a specific object type.
@@ -25,9 +25,8 @@ import { NinjaIcon } from "../../../../lib/NinjaIcon";
  * This node always contains at least two children of {@link LogicalObjectTypeRangeConsumptionNode} type.
  */
 export class LogicalObjectTypeRangesNode
-    extends AppAwareDescendantNode
-    implements GoToDefinitionCommandContext<NinjaALRange>
-{
+    extends AppsAwareDescendantNode
+    implements GoToDefinitionCommandContext<NinjaALRange> {
     private readonly _objectType: string;
     private readonly _name: string;
     private readonly _ranges: NinjaALRange[];
@@ -36,7 +35,7 @@ export class LogicalObjectTypeRangesNode
     protected override readonly _label: string | TreeItemLabel;
     protected override readonly _collapsibleState = TreeItemCollapsibleState.Expanded;
 
-    constructor(parent: AppAwareNode, objectType: string, name: string, ranges: NinjaALRange[]) {
+    constructor(parent: AppsAwareNode, objectType: string, name: string, ranges: NinjaALRange[]) {
         super(parent);
         this._objectType = objectType;
         this._name = name;
@@ -44,7 +43,8 @@ export class LogicalObjectTypeRangesNode
         this._label = name;
         this._tooltip = `Logical ranges for ${objectType} objects, named ${name}, defined in .objidconfig`;
         this._uriPathPart = name || "_";
-        this._contextValues.push(ContextValues.GotoDef);
+        if (this.apps.length === 1)
+            this._contextValues.push(ContextValues.GotoDef);
     }
 
     protected override getChildren(): Node[] {
@@ -56,7 +56,7 @@ export class LogicalObjectTypeRangesNode
 
     public get goto(): GoToDefinitionContext<NinjaALRange> {
         return {
-            app: this.app,
+            app: this.apps[0],
             file: GoToDefinitionFile.Configuration,
             type: GoToDefinitionType.ObjectTypeRanges,
             objectType: this._objectType,

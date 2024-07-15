@@ -2,14 +2,15 @@ import { TreeItemLabel, TreeItemCollapsibleState, Uri, TreeItem, Range, Position
 import { ALObject, ALUniqueEntity } from "@vjeko.com/al-parser-types-ninja";
 import { ContextValues } from "../../../ContextValues";
 import { AssignmentIdContext } from "../../../../../commands/contexts/AssignmentContext";
-import { AppAwareDescendantNode, AppAwareNode } from "../../../AppAwareNode";
+import { AppsAwareDescendantNode, AppsAwareNode } from "../../../AppsAwareNode";
 import { ALObjectType } from "../../../../../lib/types/ALObjectType";
 import { getStorageIdLight } from "../../../../../lib/functions/getStorageIdLight";
+import { ALApp } from "../../../../../lib/ALApp";
 
 /**
  * Represents a collision object field node defined as a field ID that was manually assigned.
  */
-export class CollisionFieldNode extends AppAwareDescendantNode implements AssignmentIdContext {
+export class CollisionFieldNode extends AppsAwareDescendantNode implements AssignmentIdContext {
     private readonly _object: ALObject;
     private readonly _fieldOrValue: ALUniqueEntity;
     protected _iconPath = undefined as unknown as string;
@@ -21,7 +22,7 @@ export class CollisionFieldNode extends AppAwareDescendantNode implements Assign
     protected _includeLogicalNameInLabel = false;
     private _storageId: { type: string, id: number } | undefined;
 
-    constructor(parent: AppAwareNode, object: ALObject, fieldOrValue: ALUniqueEntity) {
+    constructor(parent: AppsAwareNode, object: ALObject, fieldOrValue: ALUniqueEntity) {
         super(parent);
         this._object = object;
         this._fieldOrValue = fieldOrValue;
@@ -29,8 +30,10 @@ export class CollisionFieldNode extends AppAwareDescendantNode implements Assign
         this._uriPathPart = fieldOrValue.id.toString();
         this._label = fieldOrValue.name;
         this._description = fieldOrValue.id.toString();
-        this._contextValues.push(ContextValues.StoreAssignment);
         this._storageId = getStorageIdLight(object);
+
+        if (this.apps.every(app => app.config.appPoolId === this.apps[0].config.appPoolId))
+            this._contextValues.push(ContextValues.StoreAssignment);
     }
 
     protected override completeTreeItem(item: TreeItem): void {
@@ -49,6 +52,11 @@ export class CollisionFieldNode extends AppAwareDescendantNode implements Assign
             ],
             title: "",
         };
+    }
+
+    // AssignmentIdContext implementation
+    public get app(): ALApp {
+        return this.apps[0];
     }
 
     public get objectType(): ALObjectType {

@@ -9,10 +9,10 @@ import { WorkspaceManager } from "../features/WorkspaceManager";
 import { NinjaCommand } from "./commands";
 import { ALApp } from "../lib/ALApp";
 
-interface SyncOptions {
+export interface SyncOptions {
     merge: boolean;
-    skipQuestion: boolean;
-    fromInitial: boolean;
+    skipQuestion?: boolean;
+    fromInitial?: boolean;
     app?: ALApp;
 }
 

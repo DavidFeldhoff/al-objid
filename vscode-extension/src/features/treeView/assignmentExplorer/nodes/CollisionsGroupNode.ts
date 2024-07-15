@@ -1,13 +1,7 @@
 import { MarkdownString, TreeItemCollapsibleState } from "vscode";
 import { NinjaIcon } from "../../../../lib/NinjaIcon";
-import { ALRange } from "../../../../lib/types/ALRange";
-import { AppAwareNode, AppAwareDescendantNode } from "../../AppAwareNode";
+import { AppsAwareNode, AppsAwareDescendantNode } from "../../AppsAwareNode";
 import { Node } from "../../Node";
-import {
-    GoToDefinitionContext,
-    GoToDefinitionFile,
-    GoToDefinitionType,
-} from "../../../../commands/contexts/GoToDefinitionCommandContext";
 import { ALObject } from "@vjeko.com/al-parser-types-ninja";
 import { ALObjectType } from "../../../../lib/types/ALObjectType";
 import { CollisionObjectTypeNode } from "./CollisionObjectTypeNode";
@@ -17,7 +11,7 @@ import { CollisionObjectTypeNode } from "./CollisionObjectTypeNode";
  *
  * Contains children of {@link CollisionObjectTypeNode} type.
  */
-export class CollisionsGroupNode extends AppAwareDescendantNode {
+export class CollisionsGroupNode extends AppsAwareDescendantNode {
     private readonly _unassigned: ALObject[];
     protected override _iconPath = NinjaIcon["al-collision"];
     protected override _uriPathPart = "collisions";
@@ -28,7 +22,7 @@ export class CollisionsGroupNode extends AppAwareDescendantNode {
         "Object IDs that were **manually assigned** and are **not stored** in the back end.\n\nYou should avoid manually assigning object IDs as they are not stored in the back end and can be overwritten by other developers.\n\n[Learn more...](https://github.com/vjekob/al-objid/wiki/Does-everyone-on-my-team-need-to-use-Ninja%3F)"
     );
 
-    constructor(parent: AppAwareNode, unassigned: ALObject[]) {
+    constructor(parent: AppsAwareNode, unassigned: ALObject[]) {
         super(parent);
         this._unassigned = unassigned;
 
@@ -53,13 +47,5 @@ export class CollisionsGroupNode extends AppAwareDescendantNode {
         }
 
         return children;
-    }
-
-    public get goto(): GoToDefinitionContext<ALRange> {
-        return {
-            app: this.app,
-            file: GoToDefinitionFile.Manifest,
-            type: GoToDefinitionType.IdRanges,
-        };
     }
 }

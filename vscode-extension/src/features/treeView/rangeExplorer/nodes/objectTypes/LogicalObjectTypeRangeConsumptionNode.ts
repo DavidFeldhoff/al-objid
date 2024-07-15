@@ -1,18 +1,18 @@
 import { TreeItemCollapsibleState } from "vscode";
-import { ALObjectType } from "../../../../lib/types/ALObjectType";
-import { NinjaALRange } from "../../../../lib/types/NinjaALRange";
-import { AppAwareNode } from "../../AppAwareNode";
-import { ContextValues } from "../../ContextValues";
-import { DecorationSeverity, getSeverityFromRemaining, RangeSeverityIcons } from "../../DecorationSeverity";
-import { Node } from "../../Node";
+import { ALObjectType } from "../../../../../lib/types/ALObjectType";
+import { NinjaALRange } from "../../../../../lib/types/NinjaALRange";
+import { AppsAwareNode } from "../../../AppsAwareNode";
+import { ContextValues } from "../../../ContextValues";
+import { DecorationSeverity, getSeverityFromRemaining, RangeSeverityIcons } from "../../../DecorationSeverity";
+import { Node } from "../../../Node";
 import {
     GoToDefinitionCommandContext,
     GoToDefinitionContext,
     GoToDefinitionFile,
     GoToDefinitionType,
-} from "../../../../commands/contexts/GoToDefinitionCommandContext";
-import { RangeNode } from "./RangeNode";
-import { NinjaIcon } from "../../../../lib/NinjaIcon";
+} from "../../../../../commands/contexts/GoToDefinitionCommandContext";
+import { RangeNode } from "../RangeNode";
+import { NinjaIcon } from "../../../../../lib/NinjaIcon";
 
 /**
  * Represents a object-type logical range defined under specific object type under `objectRanges` in `.objidconfig`.
@@ -23,14 +23,13 @@ import { NinjaIcon } from "../../../../lib/NinjaIcon";
  */
 export class LogicalObjectTypeRangeConsumptionNode
     extends RangeNode<NinjaALRange>
-    implements GoToDefinitionCommandContext<NinjaALRange>
-{
+    implements GoToDefinitionCommandContext<NinjaALRange> {
     private readonly _objectType: string;
     protected override readonly _includeLogicalNameInDescription = false;
     protected override readonly _includeLogicalNameInLabel: boolean;
     protected override _collapsibleState = TreeItemCollapsibleState.None;
 
-    constructor(parent: AppAwareNode, objectType: string, range: NinjaALRange, includeName: boolean) {
+    constructor(parent: AppsAwareNode, objectType: string, range: NinjaALRange, includeName: boolean) {
         super(parent, range);
         this._objectType = objectType;
         this._includeLogicalNameInLabel = includeName;
@@ -51,10 +50,10 @@ export class LogicalObjectTypeRangeConsumptionNode
                 remaining > 10
                     ? undefined
                     : {
-                          badge: `${remaining}`,
-                          propagate: true,
-                          severity,
-                      };
+                        badge: `${remaining}`,
+                        propagate: true,
+                        severity,
+                    };
         } else {
             this._description = "(no consumption)";
             this._decoration = {
@@ -75,7 +74,7 @@ export class LogicalObjectTypeRangeConsumptionNode
 
     get goto(): GoToDefinitionContext<NinjaALRange> {
         return {
-            app: this.app,
+            app: this.apps.find(app => app.config.objectRanges[this._objectType].some(objectRange => JSON.stringify(objectRange) === JSON.stringify(this.range)))!,
             file: GoToDefinitionFile.Configuration,
             type: GoToDefinitionType.ObjectTypeRange,
             range: this._range,

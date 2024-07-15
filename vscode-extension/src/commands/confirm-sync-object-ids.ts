@@ -1,9 +1,11 @@
-import { commands, env, Uri, window } from "vscode";
+import { commands, window } from "vscode";
 import { URLS } from "../lib/constants";
 import openExternal from "../lib/functions/openExternal";
 import { Telemetry } from "../lib/Telemetry";
 import { NinjaCommand } from "./commands";
-import { AppCommandContext } from "./contexts/AppCommandContext";
+import { AppsCommandContext } from "./contexts/AppsCommandContext";
+import { SyncOptions } from "./sync-object-ids";
+import { ALApp } from "../lib/ALApp";
 
 const OPTION = {
     UPDATE: "Update. I want to merge actual object ID assignments with what's already recorded.",
@@ -12,7 +14,7 @@ const OPTION = {
     LEARN: "I am not sure. Tell me more about synchronization.",
 };
 
-export const confirmSyncObjectIds = async (context?: AppCommandContext) => {
+export const confirmSyncObjectIds = async (context?: AppsCommandContext) => {
     Telemetry.instance.logCommand(NinjaCommand.ConfirmSyncObjectIds);
 
     let result = await window.showQuickPick(Object.values(OPTION), {
@@ -21,7 +23,13 @@ export const confirmSyncObjectIds = async (context?: AppCommandContext) => {
     switch (result) {
         case OPTION.REPLACE:
         case OPTION.UPDATE:
-            commands.executeCommand(NinjaCommand.SyncObjectIds, { merge: result === OPTION.UPDATE, app: context?.app });
+            const app: ALApp | undefined = context && context.apps.length > 1 ?
+                (await window.showQuickPick(context.apps.map(app => { return { label: app.manifest.name, node: app }; }), { placeHolder: 'Which app do you want to synchronize?' }))?.node :
+                context?.apps.pop();
+            if (!app)
+                break;
+            const syncOptions: SyncOptions = { merge: result === OPTION.UPDATE, app };
+            commands.executeCommand(NinjaCommand.SyncObjectIds, syncOptions);
             break;
         case OPTION.LEARN:
             openExternal(URLS.SYNCHRONIZATION_LEARN);

@@ -1,16 +1,16 @@
-import { ThemeIcon, TreeItemLabel, TreeItemCollapsibleState } from "vscode";
-import { NinjaALRange } from "../../../../lib/types/NinjaALRange";
-import { AppAwareDescendantNode, AppAwareNode } from "../../AppAwareNode";
-import { ContextValues } from "../../ContextValues";
-import { Node } from "../../Node";
+import { TreeItemLabel, TreeItemCollapsibleState } from "vscode";
+import { NinjaALRange } from "../../../../../lib/types/NinjaALRange";
+import { AppsAwareDescendantNode, AppsAwareNode } from "../../../AppsAwareNode";
+import { ContextValues } from "../../../ContextValues";
+import { Node } from "../../../Node";
 import {
     GoToDefinitionCommandContext,
     GoToDefinitionContext,
     GoToDefinitionFile,
     GoToDefinitionType,
-} from "../../../../commands/contexts/GoToDefinitionCommandContext";
+} from "../../../../../commands/contexts/GoToDefinitionCommandContext";
 import { LogicalRangeUnnamedNode } from "./LogicalRangeUnnamedNode";
-import { NinjaIcon } from "../../../../lib/NinjaIcon";
+import { NinjaIcon } from "../../../../../lib/NinjaIcon";
 
 /**
  * Represents such logical range where there are multiple `from..to` pairs that share the same logical name
@@ -19,9 +19,8 @@ import { NinjaIcon } from "../../../../lib/NinjaIcon";
  * This node always contains children of type {@link LogicalRangeUnnamedNode}.
  */
 export class LogicalRangeGroupNode
-    extends AppAwareDescendantNode
-    implements GoToDefinitionCommandContext<NinjaALRange>
-{
+    extends AppsAwareDescendantNode
+    implements GoToDefinitionCommandContext<NinjaALRange> {
     private readonly _name: string;
     private readonly _ranges: NinjaALRange[];
     protected readonly _iconPath = NinjaIcon.note;
@@ -29,7 +28,7 @@ export class LogicalRangeGroupNode
     protected readonly _label: string | TreeItemLabel;
     protected _collapsibleState = TreeItemCollapsibleState.Expanded;
 
-    constructor(parent: AppAwareNode, name: string, ranges: NinjaALRange[]) {
+    constructor(parent: AppsAwareNode, name: string, ranges: NinjaALRange[]) {
         super(parent);
 
         this._name = name;
@@ -37,7 +36,8 @@ export class LogicalRangeGroupNode
         this._label = name;
         this._uriPathPart = name || "_";
 
-        this._contextValues.push(ContextValues.GotoDef);
+        if (this.apps.length === 1)
+            this._contextValues.push(ContextValues.GotoDef);
     }
 
     protected override getChildren(): Node[] {
@@ -48,7 +48,7 @@ export class LogicalRangeGroupNode
 
     public get goto(): GoToDefinitionContext<NinjaALRange> {
         return {
-            app: this.app,
+            app: this.apps[0],
             file: GoToDefinitionFile.Configuration,
             type: GoToDefinitionType.LogicalName,
             logicalName: this._name,

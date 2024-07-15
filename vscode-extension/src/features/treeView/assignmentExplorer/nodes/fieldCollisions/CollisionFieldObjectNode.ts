@@ -1,6 +1,6 @@
 import { TreeItemLabel, TreeItemCollapsibleState, Uri, TreeItem, MarkdownString, ThemeIcon } from "vscode";
 import { ALObject } from "@vjeko.com/al-parser-types-ninja";
-import { AppAwareDescendantNode, AppAwareNode } from "../../../AppAwareNode";
+import { AppsAwareDescendantNode, AppsAwareNode } from "../../../AppsAwareNode";
 import { Node } from "../../../Node";
 import { CollisionFieldNode } from "./CollisionFieldNode";
 import { getAlObjectEntityIds } from "../../../../../lib/functions/getAlObjectEntityIds";
@@ -8,7 +8,7 @@ import { getAlObjectEntityIds } from "../../../../../lib/functions/getAlObjectEn
 /**
  * Represents a collision object node which has field ids that were manually assigned.
  */
-export class CollisionFieldObjectNode extends AppAwareDescendantNode {
+export class CollisionFieldObjectNode extends AppsAwareDescendantNode {
     private readonly _object: ALObject;
     protected override readonly _iconPath = ThemeIcon.File;
     protected _uriAuthority: string = "";
@@ -18,7 +18,7 @@ export class CollisionFieldObjectNode extends AppAwareDescendantNode {
     protected _includeLogicalNameInDescription = false;
     protected _includeLogicalNameInLabel = false;
 
-    constructor(parent: AppAwareNode, object: ALObject) {
+    constructor(parent: AppsAwareNode, object: ALObject) {
         super(parent);
         this._object = object;
         this._uri = Uri.file(object.path);

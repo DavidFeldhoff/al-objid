@@ -4,16 +4,16 @@ import {
     GoToDefinitionContext,
     GoToDefinitionFile,
     GoToDefinitionType,
-} from "../../../../commands/contexts/GoToDefinitionCommandContext";
-import { NinjaIcon } from "../../../../lib/NinjaIcon";
-import { NinjaALRange } from "../../../../lib/types/NinjaALRange";
-import { AppAwareNode } from "../../AppAwareNode";
-import { ContextValues } from "../../ContextValues";
-import { Node } from "../../Node";
+} from "../../../../../commands/contexts/GoToDefinitionCommandContext";
+import { NinjaIcon } from "../../../../../lib/NinjaIcon";
+import { NinjaALRange } from "../../../../../lib/types/NinjaALRange";
+import { AppsAwareNode } from "../../../AppsAwareNode";
+import { ContextValues } from "../../../ContextValues";
+import { Node } from "../../../Node";
 import { LogicalObjectTypeRangeConsumptionNode } from "./LogicalObjectTypeRangeConsumptionNode";
 import { LogicalObjectTypeRangesNode } from "./LogicalObjectTypeRangesNode";
-import { ObjectTypeNode } from "./ObjectTypeNode";
-import { getChildrenOfLogicalObjectTypeNode } from "../../../../lib/functions/getChildrenOfLogicalObjectTypeNode";
+import { ObjectTypeNode } from "../ObjectTypeNode";
+import { getChildrenOfLogicalObjectTypeNode } from "../../../../../lib/functions/getChildrenOfLogicalObjectTypeNode";
 
 /**
  * Represents an individual logical object type specified under `objectTypes` in `.objidconfig`.
@@ -31,15 +31,18 @@ export class LogicalObjectTypeNode extends ObjectTypeNode implements GoToDefinit
     protected override readonly _iconPath = NinjaIcon["object-ranges-type"];
     protected override readonly _collapsibleState = TreeItemCollapsibleState.Expanded;
 
-    constructor(parent: AppAwareNode, objectType: string) {
+    constructor(parent: AppsAwareNode, objectType: string) {
         super(parent, objectType);
         this._tooltip = `Logical ranges for ${objectType} objects, defined in .objidconfig`;
-        this._contextValues.push(ContextValues.GotoDef);
+        if (this.apps.length === 1)
+            this._contextValues.push(ContextValues.GotoDef);
     }
 
     protected override getChildren(): Node[] {
         const children: Node[] = [];
-        getChildrenOfLogicalObjectTypeNode(this.app.config.getObjectTypeRanges(this._objectType),
+        const allRanges = this.apps.flatMap(app => app.config.getObjectTypeRanges(this._objectType));
+        const uniqueRanges = Array.from(new Set(allRanges.map(range => JSON.stringify(range)))).map(range => JSON.parse(range)).sort((a, b) => a.from - b.from || a.to - b.to);
+        getChildrenOfLogicalObjectTypeNode(uniqueRanges,
             (range: NinjaALRange, includeNames: boolean) => children.push(new LogicalObjectTypeRangeConsumptionNode(this, this._objectType, range, includeNames)),
             (name: string, ranges: NinjaALRange[]) => children.push(new LogicalObjectTypeRangesNode(this, this._objectType, name, ranges)));
         return children;
@@ -47,7 +50,7 @@ export class LogicalObjectTypeNode extends ObjectTypeNode implements GoToDefinit
 
     public get goto(): GoToDefinitionContext<NinjaALRange> {
         return {
-            app: this.app,
+            app: this.apps[0],
             file: GoToDefinitionFile.Configuration,
             type: GoToDefinitionType.ObjectType,
             objectType: this._objectType,

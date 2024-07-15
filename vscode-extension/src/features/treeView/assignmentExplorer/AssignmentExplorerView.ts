@@ -1,7 +1,6 @@
-import { Disposable, window } from "vscode";
 import { ALApp } from "../../../lib/ALApp";
 import { WorkspaceManager } from "../../WorkspaceManager";
-import { AppAwareNode } from "../AppAwareNode";
+import { AppsAwareNode } from "../AppsAwareNode";
 import { DecorableNode } from "../DecorableNode";
 import { Decoration } from "../Decoration";
 import { NinjaTreeView } from "../NinjaTreeView";
@@ -24,7 +23,7 @@ export class AssignmentExplorerView extends NinjaTreeView {
     }
 
     private getRootNode(app: ALApp): AssignmentExplorerRootNode | undefined {
-        const existingNode = this._rootNodes.find(node => node.app.appId === app.appId);
+        const existingNode = this._rootNodes.find(rootNode => rootNode.apps.some(rootNodeApp => rootNodeApp.config.appPoolId && rootNodeApp.config.appPoolId === app.config.appPoolId));
         if (existingNode) {
             // We are inside an app pool, obviously
             existingNode.attachPoolApp(app);
@@ -70,7 +69,7 @@ export class AssignmentExplorerView extends NinjaTreeView {
             this._appRoots.delete(app);
             for (let i = 0; i < this._rootNodes.length; i++) {
                 const node = this._rootNodes[i];
-                if (node.app === app) {
+                if (node.apps.every(nodeApp => removed.flatMap(r => r.hash).includes(nodeApp.hash))) {
                     this._rootNodes.splice(i, 1);
                     node.dispose();
                     break;
@@ -101,10 +100,10 @@ export class AssignmentExplorerView extends NinjaTreeView {
     }
 
     // Implements ViewController
-    public update(node: Node): void {
-        const app = (node as AppAwareNode).app;
-        if (app) {
-            this._decorationsProvider.releaseDecorations(app);
+    public update(node: AppsAwareNode): void {
+        const apps = node.apps;
+        if (apps) {
+            apps.forEach(app => this._decorationsProvider.releaseDecorations(app));
         }
         this._onDidChangeTreeData.fire(node);
     }

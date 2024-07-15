@@ -3,12 +3,17 @@ import { showDocument } from "../lib/functions/showDocument";
 import { NinjaALRange } from "../lib/types/NinjaALRange";
 import { UI } from "../lib/UI";
 import { WorkspaceManager } from "../features/WorkspaceManager";
-import { AppCommandContext } from "./contexts/AppCommandContext";
+import { AppsCommandContext } from "./contexts/AppsCommandContext";
 import { Telemetry } from "../lib/Telemetry";
 import { NinjaCommand } from "./commands";
+import { window } from "vscode";
 
-export async function copyRanges(context: AppCommandContext) {
-    const app = context?.app || (await WorkspaceManager.instance.selectWorkspaceFolder());
+export async function copyRanges(context: AppsCommandContext) {
+    let app;
+    if (context)
+        app = context.apps.length === 1 ? context.apps[0] : (await window.showQuickPick(context.apps.map(app => { return { label: app.manifest.name, node: app }; }), { placeHolder: 'For which app do you want to copy the ranges from app.json to .objicdonfig?' }))?.node;
+    else
+        app = (await WorkspaceManager.instance.selectWorkspaceFolder());
     if (!app) {
         return;
     }

@@ -1,5 +1,5 @@
 import { NinjaIcon } from "../../../../../lib/NinjaIcon";
-import { AppAwareDescendantNode, AppAwareNode } from "../../../AppAwareNode";
+import { AppsAwareDescendantNode, AppsAwareNode } from "../../../AppsAwareNode";
 import { TreeItemLabel, TreeItemCollapsibleState, MarkdownString } from "vscode";
 import { ALObjectType } from "../../../../../lib/types/ALObjectType";
 import { Node } from "../../../Node";
@@ -10,7 +10,7 @@ import { getAlObjectEntityIds } from "../../../../../lib/functions/getAlObjectEn
 /**
  * Represents an object type node under collision field group node.
  */
-export class CollisionFieldObjectTypeNode extends AppAwareDescendantNode {
+export class CollisionFieldObjectTypeNode extends AppsAwareDescendantNode {
     protected override readonly _iconPath = NinjaIcon["object-collision"];
     protected override readonly _uriPathPart: string;
     protected override readonly _label: string | TreeItemLabel;
@@ -19,7 +19,7 @@ export class CollisionFieldObjectTypeNode extends AppAwareDescendantNode {
     protected _includeLogicalNameInLabel = false;
     private _objects: ALObjectNamespace[];
 
-    constructor(parent: AppAwareNode, objectType: ALObjectType, objects: ALObjectNamespace[]) {
+    constructor(parent: AppsAwareNode, objectType: ALObjectType, objects: ALObjectNamespace[]) {
         super(parent);
         this._label = objectType;
         this._uriPathPart = objectType;

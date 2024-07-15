@@ -1,5 +1,5 @@
 import { NinjaIcon } from "../../../../../lib/NinjaIcon";
-import { AppAwareDescendantNode, AppAwareNode } from "../../../AppAwareNode";
+import { AppsAwareDescendantNode, AppsAwareNode } from "../../../AppsAwareNode";
 import { TreeItemLabel, TreeItemCollapsibleState, MarkdownString } from "vscode";
 import { ALObjectType } from "../../../../../lib/types/ALObjectType";
 import { Node } from "../../../Node";
@@ -11,7 +11,7 @@ import { LostFieldObjectNode } from "./LostFieldObjectNode";
  * 
  * Contains children of {@link LostFieldObjectNode} type.
  */
-export class LostFieldObjectTypeNode extends AppAwareDescendantNode {
+export class LostFieldObjectTypeNode extends AppsAwareDescendantNode {
     protected override readonly _iconPath = NinjaIcon["object-lost"];
     protected override readonly _uriPathPart: string;
     protected override readonly _label: string | TreeItemLabel;
@@ -20,7 +20,7 @@ export class LostFieldObjectTypeNode extends AppAwareDescendantNode {
     protected _includeLogicalNameInLabel = false;
     private _objects: AssignedALObject[];
 
-    constructor(parent: AppAwareNode, objectType: ALObjectType, objects: AssignedALObject[]) {
+    constructor(parent: AppsAwareNode, objectType: ALObjectType, objects: AssignedALObject[]) {
         super(parent);
         this._label = objectType;
         this._uriPathPart = objectType;

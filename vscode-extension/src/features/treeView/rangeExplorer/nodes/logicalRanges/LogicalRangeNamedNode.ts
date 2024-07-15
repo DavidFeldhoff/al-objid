@@ -1,13 +1,13 @@
-import { NinjaALRange } from "../../../../lib/types/NinjaALRange";
-import { AppAwareNode } from "../../AppAwareNode";
-import { ContextValues } from "../../ContextValues";
+import { NinjaALRange } from "../../../../../lib/types/NinjaALRange";
+import { AppsAwareNode } from "../../../AppsAwareNode";
+import { ContextValues } from "../../../ContextValues";
 import {
     GoToDefinitionCommandContext,
     GoToDefinitionContext,
     GoToDefinitionFile,
     GoToDefinitionType,
-} from "../../../../commands/contexts/GoToDefinitionCommandContext";
-import { RangeNode } from "./RangeNode";
+} from "../../../../../commands/contexts/GoToDefinitionCommandContext";
+import { RangeNode } from "../RangeNode";
 
 /**
  * Represents a logical range defined under `idRanges` in `.objidconfig`.
@@ -20,19 +20,18 @@ import { RangeNode } from "./RangeNode";
  */
 export class LogicalRangeNamedNode
     extends RangeNode<NinjaALRange>
-    implements GoToDefinitionCommandContext<NinjaALRange>
-{
+    implements GoToDefinitionCommandContext<NinjaALRange> {
     protected readonly _includeLogicalNameInDescription = true;
     protected readonly _includeLogicalNameInLabel = false;
 
-    constructor(parent: AppAwareNode, range: NinjaALRange) {
+    constructor(parent: AppsAwareNode, range: NinjaALRange) {
         super(parent, range);
         this._contextValues.push(ContextValues.GotoDef);
     }
 
     public get goto(): GoToDefinitionContext<NinjaALRange> {
         return {
-            app: this.app,
+            app: this.apps.find(app => app.config.idRanges.some(range => JSON.stringify(range) === JSON.stringify(this._range)))!,
             file: GoToDefinitionFile.Configuration,
             type: GoToDefinitionType.Range,
             range: this._range,
