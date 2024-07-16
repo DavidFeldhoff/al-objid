@@ -50,7 +50,13 @@ export class RangeExplorerView extends NinjaTreeView {
 
     protected override refreshAfterConfigChange(app: ALApp): void {
         const node = this._appRoots.get(app);
-        this._onDidChangeTreeData.fire(node);
+        if (node && node.uri.authority === app.appId)
+            this._onDidChangeTreeData.fire(node);
+        else {
+            // uri.authority which is app.hash or poolId has changed = root node has changed
+            this._rootNodesInitialized = false;
+            this._onDidChangeTreeData.fire();
+        }
         return;
     }
 

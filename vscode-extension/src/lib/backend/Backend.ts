@@ -66,6 +66,11 @@ export class Backend {
         return (this._knownManagedAppsPromises[appId] = new Promise<boolean>(async resolve => {
             const result = await this.checkApp(appId);
             this._knownManagedApps[appId] = result;
+            WorkspaceManager.instance.getALAppFromHash(appId)?.onConfigChanged(app => {
+                // re-check as app might be part of pool now or vice-versa
+                delete this._knownManagedApps[app.hash];
+                delete this._knownManagedAppsPromises[app.hash];
+            });
             resolve(result);
         }));
     }
