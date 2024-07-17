@@ -23,11 +23,14 @@ export const confirmSyncObjectIds = async (context?: AppsCommandContext) => {
     switch (result) {
         case OPTION.REPLACE:
         case OPTION.UPDATE:
-            const app: ALApp | undefined = context && context.apps.length > 1 ?
-                (await window.showQuickPick(context.apps.map(app => { return { label: app.manifest.name, node: app }; }), { placeHolder: 'Which app do you want to synchronize?' }))?.node :
-                context?.apps.pop();
-            if (!app)
-                break;
+            let app: ALApp | undefined;
+            if (context)
+                if (context.apps.length > 1) {
+                    app = (await window.showQuickPick(context.apps.map(app => { return { label: app.manifest.name, node: app }; }), { placeHolder: 'Which app do you want to synchronize?' }))?.node;
+                    if (!app)
+                        break;
+                } else
+                    app = context.apps.pop();
             const syncOptions: SyncOptions = { merge: result === OPTION.UPDATE, app };
             commands.executeCommand(NinjaCommand.SyncObjectIds, syncOptions);
             break;
