@@ -4,7 +4,7 @@ import { readFileSync } from "fs";
 import { WorkspaceManager } from "../../features/WorkspaceManager";
 import { ALObjectType } from "@vjeko.com/al-parser-types";
 
-export async function findNamespaceAndIdInDependencyPackages(uri: Uri, objectDeclarationLineNo: number, extensionObjectType: string, baseObjectName: string): Promise<{ id: number, namespace: string } | undefined> {
+export async function findNamespaceAndIdInDependencyPackages(uri: Uri, objectDeclarationLineNo: number, extensionObjectType: string, baseObjectName: string, updateDependencyCache: boolean): Promise<{ id: number, namespace: string } | undefined> {
     const lines: string[] = readFileSync(uri.fsPath, 'utf8').split('\n');
     const possibleUsingLines = lines.slice(0, objectDeclarationLineNo);
     const regexUsing = /using ([^;]+);/i;
@@ -14,7 +14,7 @@ export async function findNamespaceAndIdInDependencyPackages(uri: Uri, objectDec
         if (match)
             usings.push(match[1]);
     }
-    const alAppPackages = await WorkspaceManager.instance.getALAppFromUri(uri)?.getDependencies() || [];
+    const alAppPackages = await WorkspaceManager.instance.getALAppFromUri(uri)?.getDependencies(updateDependencyCache) || [];
     const objectOfInterest = extensionObjectType.toLowerCase() === "tableextension" ? ALObjectType.table : ALObjectType.enum;
     for (const alAppPackage of alAppPackages) {
         const baseObject = alAppPackage.flattenDependencies([objectOfInterest]).find(obj =>

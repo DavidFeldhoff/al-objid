@@ -10,12 +10,14 @@ const POLL_HOST_NAME = "vjekocom-alext-weu-poll.azurewebsites.net";
 export class Config extends DisposableHolder {
     private _config: WorkspaceConfiguration;
     private static _instance: Config;
+    private _updatesPaused: boolean = false;
 
     private constructor() {
         super();
         this._config = workspace.getConfiguration(CONFIG_SECTION);
         this.registerDisposable(
             workspace.onDidChangeConfiguration(event => {
+                if (this._updatesPaused) return;
                 if (event.affectsConfiguration(CONFIG_SECTION)) {
                     this._config = workspace.getConfiguration(CONFIG_SECTION);
                 }
@@ -100,5 +102,8 @@ export class Config extends DisposableHolder {
 
     public get storeExtensionValuesOrIdsOnBaseObject(): boolean {
         return this.getWithDefault<boolean>("storeExtensionValuesOrIdsOnBaseObject", false);
+    }
+    public setUpdatesPaused(value: boolean) {
+        this._updatesPaused = value;
     }
 }

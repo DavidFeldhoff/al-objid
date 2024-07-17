@@ -38,6 +38,7 @@ export class ALApp implements Disposable, BackEndAppInfo {
     private _config: ObjIdConfig;
     private _hash: string | undefined;
     private _encryptionKey: string | undefined;
+    private _updatesPaused: boolean = false;
 
     private constructor(uri: Uri, name: string, manifest: ALAppManifest) {
         this._uri = uri;
@@ -54,6 +55,7 @@ export class ALApp implements Disposable, BackEndAppInfo {
             this._config,
             () => this,
             () => {
+                if (this._updatesPaused) return this.config;
                 const newConfig = this.setUpConfigFile();
                 this._onConfigChanged.fire(this);
                 return newConfig;
@@ -63,6 +65,7 @@ export class ALApp implements Disposable, BackEndAppInfo {
         this._assignmentMonitor = new AssigmentMonitor(uri, this._config.appPoolId || this.hash);
         this.loadAllDependencies();
     }
+
     private getPackageCachePathsFromConfig(): string[] {
         const settingsJsonPath = path.join(this.uri.fsPath, ".vscode", "settings.json");
         if (fs.existsSync(settingsJsonPath)) {
@@ -124,6 +127,7 @@ export class ALApp implements Disposable, BackEndAppInfo {
     }
 
     private onManifestChangedFromWatcher() {
+        if (this._updatesPaused) return;
         output.log(`Change detected on ${this._manifest.uri.fsPath}`);
         const manifest = ALAppManifest.tryCreate(this._manifest.uri);
         if (!manifest) {
@@ -229,14 +233,16 @@ export class ALApp implements Disposable, BackEndAppInfo {
      * Returns the highest version of each dependency of this app.
      * @returns the highest version of each dependency of this app.
      */
-    public async getDependencies(): Promise<ALAppPackage[]> {
-        const invalidCache = this._dependencies.some(dep => dep.isOutdated) ||
-            this.dependencyPackageUris.some(uri => !this._dependencies.some(dep => dep.fsPath === uri.fsPath));
-        if (invalidCache) {
-            this._dependencies = await executeWithStopwatchAsync(
-                () => this.loadAllDependencies(),
-                `Load dependencies for ${this.name}`
-            );
+    public async getDependencies(updateCache: boolean = true): Promise<ALAppPackage[]> {
+        if (updateCache) {
+            const invalidCache = this._dependencies.some(dep => dep.isOutdated) ||
+                this.dependencyPackageUris.some(uri => !this._dependencies.some(dep => dep.fsPath === uri.fsPath));
+            if (invalidCache) {
+                this._dependencies = await executeWithStopwatchAsync(
+                    () => this.loadAllDependencies(),
+                    `Load dependencies for ${this.name}`
+                );
+            }
         }
         const appPackages = this._dependencies.filter(appPackage => appPackage !== undefined) as ALAppPackage[];
 
@@ -319,6 +325,11 @@ export class ALApp implements Disposable, BackEndAppInfo {
         return folder.uri.fsPath === this._uri.fsPath;
     }
 
+    public setUpdatesPaused(value: boolean) {
+        this._updatesPaused = value;
+        this.assignmentMonitor.setUpdatesPaused(value);
+    }
+
     public dispose() {
         if (this._diposed) {
             return;
@@ -330,4 +341,5 @@ export class ALApp implements Disposable, BackEndAppInfo {
         this._onManifestChanged.dispose();
         this._onConfigChanged.dispose();
     }
+
 }

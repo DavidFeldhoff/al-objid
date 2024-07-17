@@ -1,4 +1,4 @@
-import { env, ProgressLocation, Uri, window, workspace } from "vscode";
+import { ProgressLocation, Uri, window, workspace } from "vscode";
 import { AuthorizedAppConsumption } from "../lib/backend/AuthorizedAppConsumption";
 import { ConsumptionInfo } from "../lib/types/ConsumptionInfo";
 import { LABELS, URLS } from "../lib/constants";
@@ -14,6 +14,8 @@ import { WorkspaceManager } from "../features/WorkspaceManager";
 import { ALApp } from "../lib/ALApp";
 import { NinjaCommand } from "./commands";
 import openExternal from "../lib/functions/openExternal";
+import { Config } from "../lib/Config";
+import { PollingHandler } from "../features/PollingHandler";
 
 const BranchInfo = {
     getName(branch: GitBranchInfo) {
@@ -70,43 +72,61 @@ function getRepoName(repo: Uri) {
 
 async function updateObjectDefinitions(uri: Uri, consumption: ConsumptionInfo) {
     const uris = await getWorkspaceFolderFiles(uri);
-    const objects = await getObjectDefinitions(uris);
-    await updateActualConsumption(objects, consumption);
+    const objects = await getObjectDefinitions(uris, { fixFqn: true, updateDependencyCache: false });
+    await updateActualConsumption(objects, consumption, false);
 }
 
 async function syncFoldersForConfiguration(config: AutoSyncConfiguration, consumptions: PropertyBag<ConsumptionInfo>) {
     for (let folder of config.folders) {
         if (!consumptions[folder.fsPath]) consumptions[folder.fsPath] = {};
+        output.log(`[auto-sync-object-ids] Start updating object definitions for ${folder.fsPath}...`, LogLevel.Verbose);
         await updateObjectDefinitions(folder, consumptions[folder.fsPath]);
+        output.log(`[auto-sync-object-ids] Updating object definitions for ${folder.fsPath} done.`, LogLevel.Verbose);
     }
 }
 
 async function syncSingleConfiguration(config: AutoSyncConfiguration, consumptions: PropertyBag<ConsumptionInfo>) {
     const { repo, branchesLocal, branchesRemote } = config;
     if (repo) {
+        output.log(`[auto-sync-object-ids] Get current branch name of ${getRepoName(repo)}...`, LogLevel.Verbose);
         let currentBranch = await Git.instance.getCurrentBranchName(repo);
+        output.log(`[auto-sync-object-ids] Current branch name of ${getRepoName(repo)} is ${currentBranch}.`, LogLevel.Verbose);
         if (branchesLocal) {
+            output.log(`[auto-sync-object-ids] Start iterating over local branches`, LogLevel.Verbose);
             for (let branch of branchesLocal) {
-                if (branch !== currentBranch) await Git.instance.checkout(repo, branch);
+                if (branch !== currentBranch) {
+                    output.log(`[auto-sync-object-ids] Switching to branch ${branch}...`, LogLevel.Verbose);
+                    await Git.instance.checkout(repo, branch);
+                }
+                output.log(`[auto-sync-object-ids] Synchronizing folders for branch ${branch}...`, LogLevel.Verbose);
                 await syncFoldersForConfiguration(config, consumptions);
-                if (branch !== currentBranch) await Git.instance.checkout(repo, currentBranch);
+                if (branch !== currentBranch) {
+                    output.log(`[auto-sync-object-ids] Switching back to branch ${currentBranch}...`, LogLevel.Verbose);
+                    await Git.instance.checkout(repo, currentBranch);
+                }
             }
         }
         if (branchesRemote) {
+            output.log(`[auto-sync-object-ids] Start iterating over remote branches`, LogLevel.Verbose);
             for (let branch of branchesRemote) {
                 let newBranch = `al-object-id-ninja-remote/${Date.now()}/${branch}`;
+                output.log(`[auto-sync-object-ids] Creating temporary branch ${newBranch}...`, LogLevel.Verbose);
                 await Git.instance.trackRemoteBranch(repo, branch, newBranch);
+                output.log(`[auto-sync-object-ids] Switching to new branch ${newBranch}...`, LogLevel.Verbose);
                 await Git.instance.checkout(repo, newBranch);
 
+                output.log(`[auto-sync-object-ids] Synchronizing folders for branch ${newBranch}...`, LogLevel.Verbose);
                 await syncFoldersForConfiguration(config, consumptions);
 
+                output.log(`[auto-sync-object-ids] Switching back to branch ${currentBranch}...`, LogLevel.Verbose);
                 await Git.instance.checkout(repo, currentBranch);
+                output.log(`[auto-sync-object-ids] Delete created branch ${newBranch}...`, LogLevel.Verbose);
                 await Git.instance.deleteBranch(repo, newBranch);
             }
         }
         return;
     }
-
+    output.log(`[auto-sync-object-ids] Synchronizing folders without repo (Config: ${JSON.stringify(config)})`, LogLevel.Verbose);
     await syncFoldersForConfiguration(config, consumptions);
 }
 
@@ -155,7 +175,7 @@ function authorizeConsumptions(consumptions: PropertyBag<ConsumptionInfo>, apps:
     for (let key of Object.keys(consumptions)) {
         let app = apps.find(app => app.uri.fsPath === key)!;
         result.push({
-            appId: app.hash,
+            appId: app.appId,
             authKey: app.config.authKey,
             ids: consumptions[key],
         });
@@ -199,6 +219,15 @@ export const autoSyncObjectIds = async () => {
         if (!apps || !apps.length) {
             return autoSyncResult(AutoSyncResult.SilentFailure);
         }
+
+        // Load dependencies once to use the cached ones later
+        for (let app of apps)
+            await app.getDependencies();
+
+        // Deactivate updates due avoid conflicts on heavy branch switching
+        apps.forEach(app => app.setUpdatesPaused(true));
+        Config.instance.setUpdatesPaused(true);
+        PollingHandler.instance.setUpdatesPaused(true);
 
         // Find git repos that match picked folders
         progress.report({ message: "Connecting to Git..." });
@@ -318,12 +347,18 @@ export const autoSyncObjectIds = async () => {
         }
 
         let consumptions: PropertyBag<ConsumptionInfo> = {};
-        for (let config of setup) {
+        for (let config of setup.filter(config => config.folders.length > 0)) {
             progress.report({
                 message: `Finding object IDs in ${config.repo ? `repo ${getRepoName(config.repo)}` : "workspace"}...`,
             });
             await syncSingleConfiguration(config, consumptions);
         }
+
+        // Activate updates again after heavy branch switching
+        apps.forEach(app => app.setUpdatesPaused(false));
+        Config.instance.setUpdatesPaused(false);
+        PollingHandler.instance.setUpdatesPaused(false);
+
         compressConsumptions(consumptions, apps);
         let payload = authorizeConsumptions(consumptions, apps);
 

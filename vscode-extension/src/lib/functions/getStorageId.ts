@@ -13,7 +13,25 @@ import { ALObjectNamespace } from "../types/ALObjectNamespace";
  * Save to use even with unsaved documents
  * @param alObject The ALObject to get the storage id for
  */
-export async function getStorageId(alObject: ALObject): Promise<string | undefined>;
+export async function getStorageIdOfALObject(alObject: ALObject, updateDependencyCache: boolean): Promise<string | undefined> {
+    if (!Config.instance.storeExtensionValuesOrIdsOnBaseObject || !["tableextension", "enumextension"].includes(alObject.type.toLowerCase()))
+        return `${alObject.type}_${alObject.id}`;
+
+    let object: { type: string, id: number; extends: string | undefined; extendsNamespace?: string; path: string; } = {} as any;
+    object.path = alObject.path;
+    object.type = alObject.type.toLocaleLowerCase();
+    object.id = alObject.id;
+    if ('extendsNamespace' in alObject) {
+        object.extends = alObject.extends;
+        object.extendsNamespace = (alObject as ALObjectNamespace).extendsNamespace;
+    } else {
+        // temporary fix as the parser does not return the right extended object name and namespace
+        const extendInfos = await ParserConnector.instance.getExtendInfos(alObject.type, alObject.path, undefined, updateDependencyCache);
+        object.extends = extendInfos?.extends;
+        object.extendsNamespace = extendInfos?.extendsNamespace;
+    }
+    return await getStorageId(object, updateDependencyCache);
+}
 /**
  * Returns the storage Id for the ninja backend. 
  * Save to use even with unsaved documents.
@@ -23,50 +41,26 @@ export async function getStorageId(alObject: ALObject): Promise<string | undefin
  * @param extendsNamespace Namespace of the base object
  * @param uri Uri of the extension document
  */
-export async function getStorageId(type: string, id: number, document: TextDocument): Promise<string | undefined>;
-export async function getStorageId(arg1: string | ALObject, id?: number, document?: TextDocument): Promise<string | undefined> {
-    const type = typeof arg1 === 'string' ? arg1 : arg1.type;
-    id = typeof arg1 === 'string' ? id : arg1.id;
+export async function getStorageIdRAW(type: string, id: number, document: TextDocument): Promise<string | undefined> {
     if (!Config.instance.storeExtensionValuesOrIdsOnBaseObject || !["tableextension", "enumextension"].includes(type.toLowerCase()))
         return `${type}_${id}`;
-
-    const object = await getFinalParameters(arg1, id, document);
+    const extendedObjectDetails = await getExtendedObjectDetails(type, document!);
+    return await getStorageId({
+        type,
+        id,
+        extends: extendedObjectDetails?.extends,
+        extendsNamespace: extendedObjectDetails?.extendsNamespace,
+        path: document!.uri!.fsPath
+    }, true);
+}
+async function getStorageId(object: { type: string, id: number; extends: string | undefined; extendsNamespace?: string; path: string; }, updateDependencyCache: boolean): Promise<string | undefined> {
     if (object.extends) {
-        const baseObjectId = await getExtendedId(object.type, object.extends, object.path, object.extendsNamespace || "");
+        const baseObjectId = await getExtendedId(object.type, object.extends, object.path, object.extendsNamespace || "", updateDependencyCache);
         if (baseObjectId)
             return `${object.type.replace("extension", "")}_${baseObjectId}`;
         window.showErrorMessage(`Ninja: Could not find base object ${object.extends} in the dependencies. This is needed to get the consumption data.`);
     }
     return undefined;
-}
-async function getFinalParameters(arg1: string | ALObject, id?: number, document?: TextDocument): Promise<{ type: string; id: number; extends: string | undefined; extendsNamespace?: string; path: string }> {
-    let object: { type: string, id: number; extends: string | undefined; extendsNamespace?: string; path: string; } = {} as any;
-    if (typeof arg1 === "string") {
-        const extendedObjectDetails = await getExtendedObjectDetails(arg1, document!);
-        return {
-            type: arg1,
-            id: id!,
-            extends: extendedObjectDetails?.extends,
-            extendsNamespace: extendedObjectDetails?.extendsNamespace,
-            path: document!.uri!.fsPath
-        };
-    } else {
-        const alObject = arg1;
-        object.path = alObject.path;
-        object.type = alObject.type.toLocaleLowerCase();
-        object.id = alObject.id;
-        if ('extendsNamespace' in alObject) {
-            object.extends = alObject.extends;
-            object.extendsNamespace = (alObject as ALObjectNamespace).extendsNamespace;
-        } else {
-            // temporary fix as the parser does not return the right extended object name and namespace
-            const extendInfos = await ParserConnector.instance.getExtendInfos(alObject.type, alObject.path);
-            object.extends = extendInfos?.extends;
-            object.extendsNamespace = extendInfos?.extendsNamespace;
-        }
-    }
-    output.log(`[Get Storage Id] Found base object namespace for ${object.path}: ${object.extendsNamespace}`, LogLevel.Verbose);
-    return object;
 }
 /**
  * Returns the base object name if it can find it. 
@@ -90,7 +84,7 @@ const baseObjectLookupTable: Record<string, number> = {};
  * @param baseObjectName The name of the base object
  * @param extensionfsPath the fspath of the extension document
  */
-async function getExtendedId(extensionObjectType: string, baseObjectName: string, extensionfsPath: string, baseObjectNamespace: string): Promise<number | null> {
+async function getExtendedId(extensionObjectType: string, baseObjectName: string, extensionfsPath: string, baseObjectNamespace: string, updateDependencyCache: boolean): Promise<number | null> {
     extensionObjectType = extensionObjectType.toLowerCase();
     baseObjectName = baseObjectName.replace(/"/g, '');
 
@@ -105,7 +99,7 @@ async function getExtendedId(extensionObjectType: string, baseObjectName: string
         output.log(`[Get Extended Id] Error: Could not find app for ${extensionfsPath}. Available apps were ${WorkspaceManager.instance.alApps.map(app => app.uri.fsPath).join(', ')}`, LogLevel.Info);
         return null;
     }
-    const dependencies = await app.getDependencies();
+    const dependencies = await app.getDependencies(updateDependencyCache);
     for (const dependencyPackage of dependencies) {
         const baseObject = findBaseObject(dependencyPackage.symbolReference, baseObjectType, baseObjectName, baseObjectNamespace);
         if (baseObject) {

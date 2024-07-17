@@ -3,7 +3,7 @@ import { ALParserNinja } from "@vjeko.com/al-parser-ninja";
 import { LogLevel, output } from "./Output";
 import { CheckType } from "@vjeko.com/al-parser-ninja/dist/CheckType";
 import { ALRange } from "../lib/types/ALRange";
-import { readFileSync } from "fs";
+import { existsSync, readFileSync } from "fs";
 import { ALObjectNamespace } from "../lib/types/ALObjectNamespace";
 import { findNamespaceAndIdInDependencyPackages } from "../lib/functions/findNamespaceAndIdInDependencyPackages";
 
@@ -27,10 +27,11 @@ export class ParserConnector implements Disposable {
         return this._initialization;
     }
 
-    public async parse(uris: Uri[], tempFixFQN: boolean = true): Promise<ALObjectNamespace[]> {
+    public async parse(uris: Uri[], tempFixFQN: { fixFqn: boolean, updateDependencyCache: boolean }): Promise<ALObjectNamespace[]> {
         output.log(`[AL Parser] Parsing ${uris.length} file(s)`);
         await this.initialization;
-        const files = uris.map(uri => uri.fsPath);
+        const files = uris.map(uri => uri.fsPath)
+            .filter(fsPath => existsSync(fsPath)); // During auto-sync the uris are partially gone already due to the heavy branch switching
         const objects = await ALParserNinja.parse(files) as any as ALObjectNamespace[];
         objects
             .filter(o => o.error)
@@ -38,9 +39,9 @@ export class ParserConnector implements Disposable {
                 output.log(`[AL Parser] Error parsing ${o.name} (${o.path}): ${(o as any).error}`, LogLevel.Info)
             );
 
-        if (tempFixFQN)
+        if (tempFixFQN.fixFqn)
             for (const object of objects.filter(o => o.extends !== undefined)) {
-                const result = await this.getExtendInfos(object.type, object.path);
+                const result = await this.getExtendInfos(object.type, object.path, undefined, tempFixFQN.updateDependencyCache);
                 if (result) {
                     ({ extends: object.extends, extendsNamespace: object.extendsNamespace, extendsId: object.extendsId } = result);
                 }
@@ -49,14 +50,14 @@ export class ParserConnector implements Disposable {
         return objects;
     }
 
-    public async getExtendInfos(extensionType: string, path: string, lines: string[] = readFileSync(path, 'utf8').split('\n')): Promise<{ extends: string; extendsNamespace: string, extendsId: number } | undefined> {
+    public async getExtendInfos(extensionType: string, path: string, lines: string[] = readFileSync(path, 'utf8').split('\n'), updateDependencyCache: boolean = true): Promise<{ extends: string; extendsNamespace: string, extendsId: number } | undefined> {
         if (!["tableextension", "enumextension"].includes(extensionType.toLowerCase()))
             return undefined;
         const regex = new RegExp(`${extensionType} \\d+ ("[^"]+"|\\w+) extends (?:(?<namespace>(?:[^".\\n]+\\.)*[^".\\n]+)\\.)?(?<objectname>"[^"]+"|\\w+)`, 'i');
         for (let lineNo = 0; lineNo < lines.length; lineNo++) {
             const match = lines[lineNo].match(regex);
             if (match && match.index !== undefined && match.groups?.objectname) {
-                let namespaceAndId = await findNamespaceAndIdInDependencyPackages(Uri.file(path), lineNo, extensionType, match.groups!.objectname);
+                let namespaceAndId = await findNamespaceAndIdInDependencyPackages(Uri.file(path), lineNo, extensionType, match.groups!.objectname, updateDependencyCache);
                 if (namespaceAndId)
                     return { extends: match.groups?.objectname, extendsNamespace: namespaceAndId.namespace, extendsId: namespaceAndId.id };
             }

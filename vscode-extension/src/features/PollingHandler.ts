@@ -16,9 +16,15 @@ export class PollingHandler implements Disposable {
     private _disposed: boolean = false;
     private _appName: PropertyBag<string> = {};
     private _pollingInterval: number = DEFAULT_POLLING_INTERVAL;
+    private _updatesPaused: boolean = false;
+    private static _instance: PollingHandler;
 
-    constructor() {
+    private constructor() {
         this.initialize();
+    }
+
+    public static get instance(): PollingHandler {
+        return this._instance || (this._instance = new PollingHandler());
     }
 
     private async initialize() {
@@ -27,7 +33,7 @@ export class PollingHandler implements Disposable {
     }
 
     private async check() {
-        if (this._disposed) {
+        if (this._disposed || this._updatesPaused) {
             return;
         }
 
@@ -93,6 +99,10 @@ export class PollingHandler implements Disposable {
 
             this.scheduleNext();
         }, this._pollingInterval);
+    }
+
+    public setUpdatesPaused(value: boolean) {
+        this._updatesPaused = value;
     }
 
     public dispose() {

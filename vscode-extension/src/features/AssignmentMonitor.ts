@@ -27,6 +27,7 @@ export class AssigmentMonitor implements Disposable {
     readonly _watcher: FileSystemWatcher;
     readonly _disposables: Disposable[] = [];
     private _refreshPromise: Promise<void> | undefined;
+    private _updatesPaused: boolean = false;
 
     readonly _pending = {
         changed: [] as Uri[],
@@ -58,6 +59,7 @@ export class AssigmentMonitor implements Disposable {
     }
 
     private onDidCreate(uri: Uri) {
+        if (this._updatesPaused) return;
         if (this._pending.created.some(u => u.fsPath === uri.fsPath)) {
             return;
         }
@@ -66,6 +68,7 @@ export class AssigmentMonitor implements Disposable {
     }
 
     private onDidChange(uri: Uri) {
+        if (this._updatesPaused) return;
         if (this._pending.changed.some(u => u.fsPath === uri.fsPath)) {
             return;
         }
@@ -74,6 +77,7 @@ export class AssigmentMonitor implements Disposable {
     }
 
     private onDidDelete(uri: Uri) {
+        if (this._updatesPaused) return;
         if (this._pending.deleted.some(u => u.fsPath === uri.fsPath)) {
             return;
         }
@@ -82,6 +86,7 @@ export class AssigmentMonitor implements Disposable {
     }
 
     private scheduleRefreshObjects() {
+        if (this._updatesPaused) return;
         if (this._timeout) {
             clearTimeout(this._timeout);
         }
@@ -146,6 +151,7 @@ export class AssigmentMonitor implements Disposable {
     }
 
     private async refreshConsumption(consumption: ConsumptionDataOfObject, fieldConsumption: ConsumptionDataOfField) {
+        if (this._updatesPaused) return;
         await this.refreshObjects();
         this._consumption = consumption;
         this._fieldConsumption = fieldConsumption;
@@ -320,6 +326,10 @@ export class AssigmentMonitor implements Disposable {
             Diagnostics.instance.resetForUri(uri);
         }
         this._diagnosedUris = [];
+    }
+
+    public setUpdatesPaused(value: boolean) {
+        this._updatesPaused = value;
     }
 
     dispose() {

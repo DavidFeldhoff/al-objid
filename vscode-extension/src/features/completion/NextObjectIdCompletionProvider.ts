@@ -17,7 +17,7 @@ import { showDocument } from "../../lib/functions/showDocument";
 import { InteractiveCompletionItem } from "./InteractiveCompletionItem";
 import { continueWithAssignment, stopAsking, stopSyncing } from "./completionFunctions";
 import { getDescriptionOfRange } from "../../lib/functions/getDescriptionOfRange";
-import { getStorageId } from "../../lib/functions/getStorageId";
+import { getStorageIdRAW } from "../../lib/functions/getStorageId";
 
 type SymbolInfo = {
     type: string;
@@ -124,7 +124,7 @@ async function getTypeAtPositionRaw(
             if (isField === ";") {
                 context.injectSemicolon = true;
             }
-            const storageId = await getStorageId(objectParts[0], parseInt(objectParts[1]), document);
+            const storageId = await getStorageIdRAW(objectParts[0], parseInt(objectParts[1]), document);
             if (!storageId) {
                 return null;
             }
@@ -142,7 +142,7 @@ async function getTypeAtPositionRaw(
                 if (isValue === ";") {
                     context.injectSemicolon = true;
                 }
-                const storageId = await getStorageId(objectParts[0], parseInt(objectParts[1]), document);
+                const storageId = await getStorageIdRAW(objectParts[0], parseInt(objectParts[1]), document);
                 if (!storageId) {
                     return null;
                 }

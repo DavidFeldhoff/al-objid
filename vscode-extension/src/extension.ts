@@ -48,7 +48,7 @@ export function activate(context: ExtensionContext) {
         AuthorizationStatusBar.instance.getDisposables(),
         Output.instance.getDisposables(),
         Config.instance.getDisposables(),
-        new PollingHandler(),
+        PollingHandler.instance,
         new NewsHandler(context),
         new HttpStatusHandler(context).getDisposables(),
         ParserConnector.instance,
