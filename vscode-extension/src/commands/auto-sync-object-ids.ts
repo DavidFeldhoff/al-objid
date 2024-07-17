@@ -73,20 +73,25 @@ function getRepoName(repo: Uri) {
 async function updateObjectDefinitions(uri: Uri, consumption: ConsumptionInfo) {
     const uris = await getWorkspaceFolderFiles(uri);
     const objects = await getObjectDefinitions(uris, { fixFqn: true, updateDependencyCache: false });
-    await updateActualConsumption(objects, consumption, false);
+    return await updateActualConsumption(objects, consumption, false);
 }
 
 async function syncFoldersForConfiguration(config: AutoSyncConfiguration, consumptions: PropertyBag<ConsumptionInfo>) {
+    const errorFolders: AutoSyncErrorsFolder = {};
     for (let folder of config.folders) {
         if (!consumptions[folder.fsPath]) consumptions[folder.fsPath] = {};
         output.log(`[auto-sync-object-ids] Start updating object definitions for ${folder.fsPath}...`, LogLevel.Verbose);
-        await updateObjectDefinitions(folder, consumptions[folder.fsPath]);
+        const errorEntries = await updateObjectDefinitions(folder, consumptions[folder.fsPath]);
+        if (Object.keys(errorEntries).length > 0)
+            errorFolders[folder.fsPath] = { errorEntries };
         output.log(`[auto-sync-object-ids] Updating object definitions for ${folder.fsPath} done.`, LogLevel.Verbose);
     }
+    return errorFolders;
 }
 
 async function syncSingleConfiguration(config: AutoSyncConfiguration, consumptions: PropertyBag<ConsumptionInfo>) {
     const { repo, branchesLocal, branchesRemote } = config;
+    let branchErrors: AutoSyncErrorsBranch = {};
     if (repo) {
         output.log(`[auto-sync-object-ids] Get current branch name of ${getRepoName(repo)}...`, LogLevel.Verbose);
         let currentBranch = await Git.instance.getCurrentBranchName(repo);
@@ -99,7 +104,11 @@ async function syncSingleConfiguration(config: AutoSyncConfiguration, consumptio
                     await Git.instance.checkout(repo, branch);
                 }
                 output.log(`[auto-sync-object-ids] Synchronizing folders for branch ${branch}...`, LogLevel.Verbose);
-                await syncFoldersForConfiguration(config, consumptions);
+
+                const errorFolders = await syncFoldersForConfiguration(config, consumptions);
+                if (Object.keys(errorFolders).length > 0)
+                    branchErrors[branch] = { errorFolders };
+
                 if (branch !== currentBranch) {
                     output.log(`[auto-sync-object-ids] Switching back to branch ${currentBranch}...`, LogLevel.Verbose);
                     await Git.instance.checkout(repo, currentBranch);
@@ -116,7 +125,9 @@ async function syncSingleConfiguration(config: AutoSyncConfiguration, consumptio
                 await Git.instance.checkout(repo, newBranch);
 
                 output.log(`[auto-sync-object-ids] Synchronizing folders for branch ${newBranch}...`, LogLevel.Verbose);
-                await syncFoldersForConfiguration(config, consumptions);
+                const errorFolders = await syncFoldersForConfiguration(config, consumptions);
+                if (Object.keys(errorFolders).length > 0)
+                    branchErrors[branch] = { errorFolders };
 
                 output.log(`[auto-sync-object-ids] Switching back to branch ${currentBranch}...`, LogLevel.Verbose);
                 await Git.instance.checkout(repo, currentBranch);
@@ -124,10 +135,13 @@ async function syncSingleConfiguration(config: AutoSyncConfiguration, consumptio
                 await Git.instance.deleteBranch(repo, newBranch);
             }
         }
-        return;
+        return branchErrors;
     }
     output.log(`[auto-sync-object-ids] Synchronizing folders without repo (Config: ${JSON.stringify(config)})`, LogLevel.Verbose);
-    await syncFoldersForConfiguration(config, consumptions);
+    const errorFolders = await syncFoldersForConfiguration(config, consumptions);
+    if (Object.keys(errorFolders).length > 0)
+        branchErrors["no git repo"] = { errorFolders };
+    return branchErrors;
 }
 
 function compressConsumption(consumption: ConsumptionInfo) {
@@ -186,6 +200,7 @@ function authorizeConsumptions(consumptions: PropertyBag<ConsumptionInfo>, apps:
 
 const AutoSyncResult = {
     Success: Symbol("Success"),
+    SuccessWithWarnings: Symbol("SuccessWithWarnings"),
     NoALFolders: Symbol("NoALFolders"),
     SilentFailure: Symbol("SilentFailure"),
     GitDirty: Symbol("GitDirty"),
@@ -347,11 +362,14 @@ export const autoSyncObjectIds = async () => {
         }
 
         let consumptions: PropertyBag<ConsumptionInfo> = {};
+        const syncErrors: AutoSyncErrors = {};
         for (let config of setup.filter(config => config.folders.length > 0)) {
             progress.report({
                 message: `Finding object IDs in ${config.repo ? `repo ${getRepoName(config.repo)}` : "workspace"}...`,
             });
-            await syncSingleConfiguration(config, consumptions);
+            const errorBranches = await syncSingleConfiguration(config, consumptions);
+            if (Object.keys(errorBranches).length > 0)
+                syncErrors[config.repo?.fsPath || "workspace"] = { errorBranches };
         }
 
         // Activate updates again after heavy branch switching
@@ -364,13 +382,22 @@ export const autoSyncObjectIds = async () => {
 
         Telemetry.instance.logCommand(NinjaCommand.AutoSyncObjectIds);
         await Backend.autoSyncIds(payload, false);
-        return autoSyncResult(AutoSyncResult.Success);
+        if (Object.keys(syncErrors).length === 0)
+            return autoSyncResult(AutoSyncResult.Success);
+        else
+            return autoSyncResult(AutoSyncResult.SuccessWithWarnings, syncErrors);
+
     });
 
     switch (result.status) {
         case AutoSyncResult.Success:
             output.log("[auto-sync-object-ids] Completed successfully.", LogLevel.Info);
             UI.sync.showSuccessInfo();
+            break;
+        case AutoSyncResult.SuccessWithWarnings:
+            output.log(`[auto-sync-object-ids] Completed successfully, but with warnings. ${JSON.stringify(result.context)}`, LogLevel.Info);
+            await window.showTextDocument(await workspace.openTextDocument({ language: 'json', content: JSON.stringify(result.context, null, 2) }));
+            UI.sync.showSuccessWithWarning();
             break;
         case AutoSyncResult.NoALFolders:
             output.log("[auto-sync-object-ids] No AL folders found in the workspace.", LogLevel.Info);
@@ -384,3 +411,21 @@ export const autoSyncObjectIds = async () => {
             break;
     }
 };
+export interface AutoSyncErrors {
+    [repo: string]: {
+        errorBranches: AutoSyncErrorsBranch;
+    }
+}
+export interface AutoSyncErrorsBranch {
+    [branch: string]: {
+        errorFolders: AutoSyncErrorsFolder;
+    };
+}
+export interface AutoSyncErrorsFolder {
+    [folder: string]: {
+        errorEntries: AutoSyncErrorsEntry;
+    }
+}
+export interface AutoSyncErrorsEntry {
+    [object: string]: string;
+}

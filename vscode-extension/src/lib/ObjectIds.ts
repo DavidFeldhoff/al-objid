@@ -6,6 +6,7 @@ import { ParserConnector } from "../features/ParserConnector";
 import { getStorageIdOfALObject } from "./functions/getStorageId";
 import { ALObjectNamespace } from "./types/ALObjectNamespace";
 import { getAlObjectEntityIds } from "./functions/getAlObjectEntityIds";
+import { AutoSyncErrorsEntry } from "../commands/auto-sync-object-ids";
 
 export async function getWorkspaceFolderFiles(uri: Uri): Promise<Uri[]> {
     let folderPath: string = uri.fsPath;
@@ -20,26 +21,35 @@ export async function getObjectDefinitions(uris: Uri[], tempFixFQN: { fixFqn: bo
     return executeWithStopwatchAsync(() => ParserConnector.instance.parse(uris, tempFixFQN), `Parsing ${uris.length} object files`);
 }
 
-export async function updateActualConsumption(objects: ALObject[], consumption: ConsumptionInfo, updateDependencyCache: boolean): Promise<void> {
+export async function updateActualConsumption(objects: ALObject[], consumption: ConsumptionInfo, updateDependencyCache: boolean) {
+    const errorEntries: AutoSyncErrorsEntry = {};
     for (let object of objects) {
         let { type, id } = object;
-        if (!id) continue;
+        if (!id) {
+            errorEntries[`${type}_0_${object.name}`] = "No ID";
+            continue;
+        }
         if (!consumption[type]) consumption[type] = [];
         consumption[type].push(id);
 
-        let typeAndId = await getStorageIdOfALObject(object, updateDependencyCache);
-        if (!typeAndId)
+        const fieldsOrValues = getAlObjectEntityIds(object);
+        if (fieldsOrValues.length === 0)
             continue;
 
-        const fieldsOrValues = getAlObjectEntityIds(object);
+        let typeAndId = await getStorageIdOfALObject(object, updateDependencyCache);
+        if (!typeAndId) {
+            errorEntries[`${type}_${id}_${object.name}`] = `Unable to store ${type === "tableextension" ? 'field' : 'value'} IDs as ID of base object wasn't found. Please check if the base object is in the workspace or dependency packages.`;
+            continue;
+        }
+
         if (fieldsOrValues.length > 0) {
             consumption[typeAndId] = [];
             for (let fieldOrValue of fieldsOrValues) {
                 consumption[typeAndId].push(fieldOrValue.id);
             }
-            continue;
         }
     }
+    return errorEntries;
 }
 
 export async function getActualConsumption(objects: ALObject[]): Promise<ConsumptionInfo> {

@@ -71,6 +71,10 @@ export const UI = {
             window.showInformationMessage(
                 `Object IDs${app ? ` for ${describeApp(app)}` : ""} are now in sync with the Azure back end.`
             ),
+        showSuccessWithWarning: (app?: ALApp) =>
+            window.showWarningMessage(
+                `Object IDs${app ? ` for ${describeApp(app)}` : ""} are now mostly in sync with the Azure back end. Please check the opened file manually.`
+            ),
         showInitialSuccessInfo: (app: ALApp) =>
             window.showInformationMessage(`That's it, no more object ID conflicts in ${app.name}.`),
         showAreYouSure: async () =>
