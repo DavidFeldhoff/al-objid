@@ -35,6 +35,7 @@ Work is in progress on two upcoming features, both of which heavily depend on tr
 - `Range Explorer` View could not deal with multiple object ranges without a description.
 - Multiple Object ranges without a description proposed multiple entries as next Ids. Now it only shows the first available one as if the ranges would be one logical range.
 - An error was shown when reserving an enum value in the range from 1-49999 saying that "no more objects" are available
+- It could happen that you just assigned an ID from Ninja, but as the file wasn't saved yet, Ninja said as well that the newly assigned ID is lost and/or that the ID was manually assigned (if you had a manually assigned ID before).
 
 ## [2.12.0] - 2023-09-10
 

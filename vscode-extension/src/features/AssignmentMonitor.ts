@@ -142,12 +142,35 @@ export class AssigmentMonitor implements Disposable {
                     this._objects = [];
                 }
                 this._objects.push(...objects);
+                //TODO: Fields would have to be updated as well, but this is just a temporary workaround until the AL Parser is able to accept a string (=filecontent) instead of saved uris only.
+                this.updateObjectsWithDirtyDocuments();
                 resolve();
             } catch (error) {
                 reject(error);
             }
         }).then(() => this._refreshPromise = undefined);
         return this._refreshPromise;
+    }
+
+    private updateObjectsWithDirtyDocuments() {
+        const dirtyDocuments = workspace.textDocuments.filter(doc => doc.isDirty);
+        const dirtyObjects = dirtyDocuments
+            .map(doc => {
+                const declaration = doc.getText().match(/(?:\n|^)(\w+) (\d+) ("[^"]+"|\w+)/);
+                if (!declaration) {
+                    return undefined;
+                }
+                const type = declaration[1];
+                const id = parseInt(declaration[2]);
+                return { uri: doc.uri, type, id };
+            })
+            .filter(o => o !== undefined) as { uri: Uri; type: string; id: number; }[];
+
+        dirtyObjects.forEach(dirtyObject => {
+            const object = (this._objects || []).find(object => object.path === dirtyObject.uri.fsPath && object.type.toLowerCase() === dirtyObject.type.toLowerCase());
+            if (object)
+                object.id = dirtyObject.id;
+        });
     }
 
     private async refreshConsumption(consumption: ConsumptionDataOfObject, fieldConsumption: ConsumptionDataOfField) {
