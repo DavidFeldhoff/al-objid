@@ -1,6 +1,7 @@
-import { workspace, WorkspaceConfiguration } from "vscode";
+import { Disposable, EventEmitter, workspace, WorkspaceConfiguration } from "vscode";
 import { DisposableHolder } from "../features/DisposableHolder";
 import { User } from "./User";
+import { RangeToShow } from "./types/RangeToShow";
 
 const CONFIG_SECTION = "objectIdNinja";
 
@@ -11,6 +12,8 @@ export class Config extends DisposableHolder {
     private _config: WorkspaceConfiguration;
     private static _instance: Config;
     private _updatesPaused: boolean = false;
+    private readonly _onConfigChanged = new EventEmitter();
+    private readonly _onConfigChangedEvent = this._onConfigChanged.event;
 
     private constructor() {
         super();
@@ -20,9 +23,13 @@ export class Config extends DisposableHolder {
                 if (this._updatesPaused) return;
                 if (event.affectsConfiguration(CONFIG_SECTION)) {
                     this._config = workspace.getConfiguration(CONFIG_SECTION);
+                    this._onConfigChanged.fire({});
                 }
             })
         );
+    }
+    public onConfigChanged(onUpdate: () => void): Disposable {
+        return this._onConfigChangedEvent(onUpdate);
     }
 
     public static get instance(): Config {
@@ -103,6 +110,13 @@ export class Config extends DisposableHolder {
     public get storeExtensionValuesOrIdsOnBaseObject(): boolean {
         return this.getWithDefault<boolean>("storeExtensionValuesOrIdsOnBaseObject", false);
     }
+
+    public get rangesToShowInRangeExplorer(): RangeToShow[] {
+        const defaultSetting = Object.values(RangeToShow);
+        const currentSetting = this.getWithDefault<RangeToShow[]>("rangesToShowInRangeExplorer", defaultSetting);
+        return currentSetting.length === 0 ? defaultSetting : currentSetting;
+    }
+
     public setUpdatesPaused(value: boolean) {
         this._updatesPaused = value;
     }

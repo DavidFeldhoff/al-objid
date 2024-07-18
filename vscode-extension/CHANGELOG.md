@@ -25,6 +25,7 @@ Work is in progress on two upcoming features, both of which heavily depend on tr
 - Getting the consumption is now done based on app *or pool* level. This makes the `Range Explorer` and `Assignment Explorer` View accessible for App Pools as well. The `Lost ids` part of the `Assignment Explorer` is not yet working for pools. The Object Ranges and logical ranges from the `.objidconfig` as well as the idRanges from the `app.json`s are combined in the range explorer in case they differ and are in the same app pool.
 - Unassigned and Lost Field diagnostics: In older versions you received diagnostics which showed up in the problems pane if you did not reserve an object id using Ninja. This happens now also for field ids. Furthermore these warnings are shown in the `Assignment Explorer`.
 - `Ninja: Automatically Synchronize Object IDs for Entire Workspace` now also supports pools and it has been made less error-prone by turning off some file watchers while switching branches.
+- New setting `rangesToShowInRangeExplorer`: You're able hide some ranges from the range explorer view. Available ranges are: Manifest ranges (=idRanges of app.json), Logical ranges (=idRanges of .objidconfig) and Object ranges (=objectRanges in .objidconfig)
 
 ### Changed
 

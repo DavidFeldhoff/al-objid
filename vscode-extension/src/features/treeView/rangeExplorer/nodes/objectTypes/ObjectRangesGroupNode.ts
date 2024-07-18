@@ -32,7 +32,7 @@ export class ObjectRangesGroupNode
             this._contextValues.push(ContextValues.GotoDef);
     }
 
-    protected override getChildren(): Node[] {
+    public override getChildren(): Node[] {
         const uniqueObjectTypes = Array.from(new Set(this.apps.flatMap(app => app.config.objectTypesSpecified)));
         return uniqueObjectTypes.map(objectType => new LogicalObjectTypeNode(this, objectType));
     }

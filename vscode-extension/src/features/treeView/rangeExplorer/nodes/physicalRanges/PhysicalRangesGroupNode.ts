@@ -34,7 +34,7 @@ export class PhysicalRangesGroupNode
             this._contextValues.push(ContextValues.GotoDef, ContextValues.CopyRanges);
     }
 
-    protected override getChildren(): Node[] {
+    public override getChildren(): Node[] {
         const allRanges = this.apps.flatMap(app => app.manifest.idRanges);
         const uniqueRanges = Array.from(new Set(allRanges.map(range => JSON.stringify(range)))).map(range => JSON.parse(range)).sort((a, b) => a.from - b.from || a.to - b.to);
         return uniqueRanges.map(range => new PhysicalRangeNode(this.parent, range));

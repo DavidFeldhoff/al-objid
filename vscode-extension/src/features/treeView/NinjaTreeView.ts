@@ -1,8 +1,6 @@
 import {
     Disposable,
     EventEmitter,
-    ThemeColor,
-    ThemeIcon,
     TreeDataProvider,
     TreeItem,
     TreeItemCollapsibleState,
@@ -17,7 +15,6 @@ import { DecorableNode } from "./DecorableNode";
 import { ExpandCollapseController } from "./ExpandCollapseController";
 import { Node } from "./Node";
 import { ViewController } from "./ViewController";
-import { SeverityColors } from "./DecorationSeverity";
 import { Decoration } from "./Decoration";
 import { DecorationsProvider } from "./DecorationsProvider";
 

@@ -38,7 +38,7 @@ export class LogicalRangesGroupNode
             this._contextValues.push(ContextValues.GotoDef, ContextValues.ConsolidateRanges);
     }
 
-    protected override getChildren(): Node[] {
+    public override getChildren(): Node[] {
         const children: Node[] = [];
         const uniquelogicalRangeNames = Array.from(new Set(this.apps.flatMap(app => app.config.logicalRangeNames))).sort();
         const allIdRanges = this.apps.flatMap(app => app.config.idRanges);

@@ -9,8 +9,9 @@ import { RootNode } from "../../RootNode";
 import { ViewController } from "../../ViewController";
 import { LogicalRangesGroupNode } from "./logicalRanges/LogicalRangesGroupNode";
 import { ObjectRangesGroupNode } from "./objectTypes/ObjectRangesGroupNode";
-import { PhysicalRangeNode } from "./physicalRanges/PhysicalRangeNode";
 import { PhysicalRangesGroupNode } from "./physicalRanges/PhysicalRangesGroupNode";
+import { Config } from "../../../../lib/Config";
+import { RangeToShow } from "../../../../lib/types/RangeToShow";
 
 /**
  * Represents a root node for range explorer.
@@ -20,6 +21,7 @@ export class RangeExplorerRootNode extends RootNode implements AppsAwareNode, Ap
     private readonly _hasLogical: boolean;
     private readonly _hasObject: boolean;
     private readonly _subscription: Disposable;
+    private readonly _configSubscription: Disposable;
     protected override readonly _uriAuthority: string;
     protected override readonly _label: string;
     protected override readonly _description: string;
@@ -53,6 +55,10 @@ export class RangeExplorerRootNode extends RootNode implements AppsAwareNode, Ap
         this._subscription = ConsumptionCache.instance.onConsumptionUpdate(app.appId, () => {
             this._view.update(this);
         });
+
+        this._configSubscription = Config.instance.onConfigChanged(() =>
+            this._view.update(this)
+        );
     }
     attachPoolApp(app: ALApp) {
         this._apps.push(app);
@@ -63,17 +69,29 @@ export class RangeExplorerRootNode extends RootNode implements AppsAwareNode, Ap
     protected override getChildren(): Node[] {
         let children: Node[] = [];
 
-        if (!this._hasLogical && !this._hasObject) {
-            children = this._apps.flatMap(app => app.manifest.idRanges).map(range => new PhysicalRangeNode(this, range));
-        } else {
-            children = [new PhysicalRangesGroupNode(this)];
+        const rangesToShow = Config.instance.rangesToShowInRangeExplorer;
+        if (rangesToShow.includes(RangeToShow.ManifestRanges)) {
+            if ((!this._hasLogical && !this._hasObject) || rangesToShow.length === 1) {
+                children = new PhysicalRangesGroupNode(this).getChildren();
+            } else {
+                children.push(new PhysicalRangesGroupNode(this));
+            }
         }
 
-        if (this._hasLogical) {
-            children!.push(new LogicalRangesGroupNode(this));
+        if (this._hasLogical && rangesToShow.includes(RangeToShow.LogicalRanges)) {
+            if ((children.length === 0 && !this._hasObject) || rangesToShow.length === 1) {
+                children = new LogicalRangesGroupNode(this).getChildren();
+            } else {
+                children.push(new LogicalRangesGroupNode(this));
+            }
         }
-        if (this._hasObject) {
-            children!.push(new ObjectRangesGroupNode(this));
+
+        if (this._hasObject && rangesToShow.includes(RangeToShow.ObjectRanges)) {
+            if (children.length === 0) {
+                children = new ObjectRangesGroupNode(this).getChildren();
+            } else {
+                children.push(new ObjectRangesGroupNode(this));
+            }
         }
 
         return children;
@@ -85,5 +103,6 @@ export class RangeExplorerRootNode extends RootNode implements AppsAwareNode, Ap
 
     public dispose(): void {
         this._subscription.dispose();
+        this._configSubscription.dispose();
     }
 }
