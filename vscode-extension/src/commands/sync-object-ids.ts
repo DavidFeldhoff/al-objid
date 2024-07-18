@@ -8,6 +8,8 @@ import { Telemetry } from "../lib/Telemetry";
 import { WorkspaceManager } from "../features/WorkspaceManager";
 import { NinjaCommand } from "./commands";
 import { ALApp } from "../lib/ALApp";
+import { GetConsumptionErrorEntry } from "../lib/types/ConsumptionErrors";
+import { window, workspace } from "vscode";
 
 export interface SyncOptions {
     merge: boolean;
@@ -38,7 +40,13 @@ export const syncObjectIds = async (options?: SyncOptions) => {
 
     const uris = await getWorkspaceFolderFiles(app.uri);
     const objects = await getObjectDefinitions(uris);
-    const consumption: ConsumptionInfo = await getActualConsumption(objects);
+    let errorEntries: GetConsumptionErrorEntry[] = [];
+    const consumption: ConsumptionInfo = await getActualConsumption(objects, errorEntries);
+    if (errorEntries.length > 0) {
+        UI.sync.showGetConsumptionErrors(errorEntries);
+        await window.showTextDocument(await workspace.openTextDocument({ language: 'json', content: JSON.stringify(errorEntries, null, 2) }));
+        return;
+    }
 
     Telemetry.instance.logAppCommand(app, NinjaCommand.SyncObjectIds);
     if (await Backend.syncIds(app, consumption, !!options?.merge)) {

@@ -16,6 +16,7 @@ import { NinjaCommand } from "./commands";
 import openExternal from "../lib/functions/openExternal";
 import { Config } from "../lib/Config";
 import { PollingHandler } from "../features/PollingHandler";
+import { GetConsumptionError, GetConsumptionErrorBranch, GetConsumptionErrorFolder } from "../lib/types/ConsumptionErrors";
 
 const BranchInfo = {
     getName(branch: GitBranchInfo) {
@@ -77,13 +78,13 @@ async function updateObjectDefinitions(uri: Uri, consumption: ConsumptionInfo) {
 }
 
 async function syncFoldersForConfiguration(config: AutoSyncConfiguration, consumptions: PropertyBag<ConsumptionInfo>) {
-    const errorFolders: AutoSyncErrorsFolder = {};
+    const errorFolders: GetConsumptionErrorFolder[] = [];
     for (let folder of config.folders) {
         if (!consumptions[folder.fsPath]) consumptions[folder.fsPath] = {};
         output.log(`[auto-sync-object-ids] Start updating object definitions for ${folder.fsPath}...`, LogLevel.Verbose);
         const errorEntries = await updateObjectDefinitions(folder, consumptions[folder.fsPath]);
-        if (Object.keys(errorEntries).length > 0)
-            errorFolders[folder.fsPath] = { errorEntries };
+        if (errorEntries.length > 0)
+            errorFolders.push({ folder: folder.fsPath, errorEntries });
         output.log(`[auto-sync-object-ids] Updating object definitions for ${folder.fsPath} done.`, LogLevel.Verbose);
     }
     return errorFolders;
@@ -91,7 +92,7 @@ async function syncFoldersForConfiguration(config: AutoSyncConfiguration, consum
 
 async function syncSingleConfiguration(config: AutoSyncConfiguration, consumptions: PropertyBag<ConsumptionInfo>) {
     const { repo, branchesLocal, branchesRemote } = config;
-    let branchErrors: AutoSyncErrorsBranch = {};
+    let branchErrors: GetConsumptionErrorBranch[] = [];
     if (repo) {
         output.log(`[auto-sync-object-ids] Get current branch name of ${getRepoName(repo)}...`, LogLevel.Verbose);
         let currentBranch = await Git.instance.getCurrentBranchName(repo);
@@ -106,8 +107,8 @@ async function syncSingleConfiguration(config: AutoSyncConfiguration, consumptio
                 output.log(`[auto-sync-object-ids] Synchronizing folders for branch ${branch}...`, LogLevel.Verbose);
 
                 const errorFolders = await syncFoldersForConfiguration(config, consumptions);
-                if (Object.keys(errorFolders).length > 0)
-                    branchErrors[branch] = { errorFolders };
+                if (errorFolders.length > 0)
+                    branchErrors.push({ branch, errorFolders });
 
                 if (branch !== currentBranch) {
                     output.log(`[auto-sync-object-ids] Switching back to branch ${currentBranch}...`, LogLevel.Verbose);
@@ -126,8 +127,8 @@ async function syncSingleConfiguration(config: AutoSyncConfiguration, consumptio
 
                 output.log(`[auto-sync-object-ids] Synchronizing folders for branch ${newBranch}...`, LogLevel.Verbose);
                 const errorFolders = await syncFoldersForConfiguration(config, consumptions);
-                if (Object.keys(errorFolders).length > 0)
-                    branchErrors[branch] = { errorFolders };
+                if (errorFolders.length > 0)
+                    branchErrors.push({ branch, errorFolders });
 
                 output.log(`[auto-sync-object-ids] Switching back to branch ${currentBranch}...`, LogLevel.Verbose);
                 await Git.instance.checkout(repo, currentBranch);
@@ -139,8 +140,8 @@ async function syncSingleConfiguration(config: AutoSyncConfiguration, consumptio
     }
     output.log(`[auto-sync-object-ids] Synchronizing folders without repo (Config: ${JSON.stringify(config)})`, LogLevel.Verbose);
     const errorFolders = await syncFoldersForConfiguration(config, consumptions);
-    if (Object.keys(errorFolders).length > 0)
-        branchErrors["no git repo"] = { errorFolders };
+    if (errorFolders.length > 0)
+        branchErrors.push({ branch: "no git repo", errorFolders });
     return branchErrors;
 }
 
@@ -362,14 +363,14 @@ export const autoSyncObjectIds = async () => {
         }
 
         let consumptions: PropertyBag<ConsumptionInfo> = {};
-        const syncErrors: AutoSyncErrors = {};
+        const syncErrors: GetConsumptionError[] = [];
         for (let config of setup.filter(config => config.folders.length > 0)) {
             progress.report({
                 message: `Finding object IDs in ${config.repo ? `repo ${getRepoName(config.repo)}` : "workspace"}...`,
             });
             const errorBranches = await syncSingleConfiguration(config, consumptions);
             if (Object.keys(errorBranches).length > 0)
-                syncErrors[config.repo?.fsPath || "workspace"] = { errorBranches };
+                syncErrors.push({ repo: config.repo?.fsPath || "workspace", errorBranches });
         }
 
         // Activate updates again after heavy branch switching
@@ -411,21 +412,3 @@ export const autoSyncObjectIds = async () => {
             break;
     }
 };
-export interface AutoSyncErrors {
-    [repo: string]: {
-        errorBranches: AutoSyncErrorsBranch;
-    }
-}
-export interface AutoSyncErrorsBranch {
-    [branch: string]: {
-        errorFolders: AutoSyncErrorsFolder;
-    };
-}
-export interface AutoSyncErrorsFolder {
-    [folder: string]: {
-        errorEntries: AutoSyncErrorsEntry;
-    }
-}
-export interface AutoSyncErrorsEntry {
-    [object: string]: string;
-}

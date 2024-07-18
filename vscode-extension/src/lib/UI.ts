@@ -5,6 +5,7 @@ import { CONFIG_FILE_NAME, EXTENSION_NAME, LABELS } from "./constants";
 import { EventLogEntry } from "./types/EventLogEntry";
 import { ALApp } from "./ALApp";
 import { Config } from "./Config";
+import { GetConsumptionErrorEntry } from "./types/ConsumptionErrors";
 
 // TODO All "learn more" messages should wrap their learn more action to reduce complexity of consumers
 
@@ -73,10 +74,12 @@ export const UI = {
             ),
         showSuccessWithWarning: (app?: ALApp) =>
             window.showWarningMessage(
-                `Object IDs${app ? ` for ${describeApp(app)}` : ""} are now mostly in sync with the Azure back end. Please check the opened file manually.`
+                `Object IDs${app ? ` for ${describeApp(app)}` : ""} are now mostly in sync with the Azure back end. But a few ones couldn't be synched. Please check manually the file that just opened, fix it and try again.`
             ),
         showInitialSuccessInfo: (app: ALApp) =>
             window.showInformationMessage(`That's it, no more object ID conflicts in ${app.name}.`),
+        showGetConsumptionErrors: (errorEntries: GetConsumptionErrorEntry[]) =>
+            window.showErrorMessage(`Unable to store the consumption for ${errorEntries.length} entries. Please review the log, fix the entries and try again.`),
         showAreYouSure: async () =>
             window.showQuickPick(Object.values(LABELS.SYNC_ARE_YOU_SURE), {
                 placeHolder: "Are you sure you want to replace existing object ID assignments?",

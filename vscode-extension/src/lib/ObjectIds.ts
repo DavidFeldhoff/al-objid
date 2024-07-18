@@ -6,7 +6,7 @@ import { ParserConnector } from "../features/ParserConnector";
 import { getStorageIdOfALObject } from "./functions/getStorageId";
 import { ALObjectNamespace } from "./types/ALObjectNamespace";
 import { getAlObjectEntityIds } from "./functions/getAlObjectEntityIds";
-import { AutoSyncErrorsEntry } from "../commands/auto-sync-object-ids";
+import { GetConsumptionErrorEntry } from "./types/ConsumptionErrors";
 
 export async function getWorkspaceFolderFiles(uri: Uri): Promise<Uri[]> {
     let folderPath: string = uri.fsPath;
@@ -22,11 +22,14 @@ export async function getObjectDefinitions(uris: Uri[], tempFixFQN: { fixFqn: bo
 }
 
 export async function updateActualConsumption(objects: ALObject[], consumption: ConsumptionInfo, updateDependencyCache: boolean) {
-    const errorEntries: AutoSyncErrorsEntry = {};
+    const errorEntries: GetConsumptionErrorEntry[] = [];
     for (let object of objects) {
         let { type, id } = object;
         if (!id) {
-            errorEntries[`${type}_0_${object.name}`] = "No ID";
+            errorEntries.push({
+                object: `${type}_0_${object.name}`,
+                reason: "No ID"
+            });
             continue;
         }
         if (!consumption[type]) consumption[type] = [];
@@ -38,7 +41,10 @@ export async function updateActualConsumption(objects: ALObject[], consumption: 
 
         let typeAndId = await getStorageIdOfALObject(object, updateDependencyCache);
         if (!typeAndId) {
-            errorEntries[`${type}_${id}_${object.name}`] = `Unable to store ${type === "tableextension" ? 'field' : 'value'} IDs as ID of base object wasn't found. Please check if the base object is in the workspace or dependency packages.`;
+            errorEntries.push({
+                object: `${type}_${id}_${object.name}`,
+                reason: `Unable to store ${type === "tableextension" ? 'field' : 'value'} IDs as ID of base object wasn't found. Please check if the base object is in the workspace or dependency packages.`
+            });
             continue;
         }
 
@@ -52,8 +58,10 @@ export async function updateActualConsumption(objects: ALObject[], consumption: 
     return errorEntries;
 }
 
-export async function getActualConsumption(objects: ALObject[]): Promise<ConsumptionInfo> {
+export async function getActualConsumption(objects: ALObject[], errorEntries?: GetConsumptionErrorEntry[]): Promise<ConsumptionInfo> {
     const consumption: ConsumptionInfo = {};
-    await updateActualConsumption(objects, consumption, true);
+    const entries = await updateActualConsumption(objects, consumption, true);
+    if (errorEntries)
+        errorEntries = entries;
     return consumption;
 }
