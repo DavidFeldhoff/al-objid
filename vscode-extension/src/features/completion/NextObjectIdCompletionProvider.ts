@@ -128,7 +128,7 @@ async function getTypeAtPositionRaw(
             if (!storageId) {
                 return null;
             }
-            return `${objectParts[0]}_${objectParts[1]}`;
+            return storageId;
         }
         return null;
     }
@@ -146,6 +146,7 @@ async function getTypeAtPositionRaw(
                 if (!storageId) {
                     return null;
                 }
+                return storageId;
             }
             return null;
         }

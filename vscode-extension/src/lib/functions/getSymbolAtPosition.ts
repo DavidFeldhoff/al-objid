@@ -46,7 +46,8 @@ export async function getSymbolAtPosition(
             CodeCommand.ExecuteDocumentSymbolProvider,
             uri
         )) as DocumentSymbol[];
-        return getSymbolInChildren(position, symbols, null, matches);
-    } catch {}
+        const symbol = getSymbolInChildren(position, symbols, null, matches);
+        return symbol;
+    } catch { }
     return null;
 }
