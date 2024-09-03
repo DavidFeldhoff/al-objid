@@ -24,6 +24,7 @@ import { sendRequest } from "./sendRequest";
 import { PropertyBag } from "../types/PropertyBag";
 import openExternal from "../functions/openExternal";
 import { isProtectedPublisher } from "../functions/isProtectedPublisher";
+import { ConsumptionCache } from "../../features/ConsumptionCache";
 
 (async () => {
     if (Config.instance.isBackEndConfigInError) {
@@ -134,8 +135,12 @@ export class Backend {
             authKey: app.config.authKey,
             ...additionalOptions,
         });
-        if (response.status === API_RESULT.SUCCESS)
+        if (response.status === API_RESULT.SUCCESS) {
             output.log(`Received next ${type} ID response: ${JSON.stringify(response.value)}`);
+            if (commit && !!response.value?._appInfo) {
+                ConsumptionCache.instance.updateConsumption(appId, response.value._appInfo);
+            }
+        }
         return response.value;
     }
 
@@ -149,7 +154,7 @@ export class Backend {
 
         const appId = WorkspaceManager.instance.getPoolIdFromAppIdIfAvailable(app.hash);
 
-        const response = await sendRequest<{ updated: boolean }>("/api/v2/storeAssignment", "POST", {
+        const response = await sendRequest<{ updated: boolean, _appInfo: any }>("/api/v2/storeAssignment", "POST", {
             appId,
             type,
             id,
@@ -157,6 +162,9 @@ export class Backend {
             authKey: app.config.authKey,
             ...additionalOptions
         });
+        if (!!response.value?.updated && !!response.value?._appInfo) {
+            ConsumptionCache.instance.updateConsumption(appId, response.value._appInfo);
+        }
         return !!response.value?.updated;
     }
 
@@ -170,7 +178,7 @@ export class Backend {
 
         const appId = WorkspaceManager.instance.getPoolIdFromAppIdIfAvailable(app.hash);
 
-        const response = await sendRequest<{ updated: boolean }>("/api/v2/storeAssignment", "DELETE", {
+        const response = await sendRequest<{ updated: boolean, _appInfo: any }>("/api/v2/storeAssignment", "DELETE", {
             appId,
             type,
             id,
@@ -178,6 +186,9 @@ export class Backend {
             authKey: app.config.authKey,
             ...additionalOptions
         });
+        if (!!response.value?.updated && !!response.value?._appInfo) {
+            ConsumptionCache.instance.updateConsumption(appId, response.value._appInfo);
+        }
         return !!response.value?.updated;
     }
 

@@ -65,6 +65,7 @@ export class Diagnostics implements Disposable {
 
     public resetForUri(uri: Uri) {
         this._diagnostics.delete(uri);
+        this._documents.delete(uri.fsPath);
     }
 
     public createDiagnostics(uri: Uri, category: string): CreateDiagnostic {
