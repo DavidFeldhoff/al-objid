@@ -142,6 +142,11 @@ export class Backend {
     public static async addAssignment(app: ALApp, type: string, id: number, fieldId?: number): Promise<boolean> {
         this.rememberManagedApp(app.hash);
 
+        const additionalOptions = {} as any;
+        if (Config.instance.storeExtensionValuesOrIdsOnBaseObject) {
+            additionalOptions.redirectExtensions = true;
+        }
+
         const appId = WorkspaceManager.instance.getPoolIdFromAppIdIfAvailable(app.hash);
 
         const response = await sendRequest<{ updated: boolean }>("/api/v2/storeAssignment", "POST", {
@@ -150,12 +155,18 @@ export class Backend {
             id,
             fieldId,
             authKey: app.config.authKey,
+            ...additionalOptions
         });
         return !!response.value?.updated;
     }
 
     public static async removeAssignment(app: ALApp, type: string, id: number, fieldId?: number): Promise<boolean> {
         this.rememberManagedApp(app.hash);
+
+        const additionalOptions = {} as any;
+        if (Config.instance.storeExtensionValuesOrIdsOnBaseObject) {
+            additionalOptions.redirectExtensions = true;
+        }
 
         const appId = WorkspaceManager.instance.getPoolIdFromAppIdIfAvailable(app.hash);
 
@@ -165,6 +176,7 @@ export class Backend {
             id,
             fieldId,
             authKey: app.config.authKey,
+            ...additionalOptions
         });
         return !!response.value?.updated;
     }

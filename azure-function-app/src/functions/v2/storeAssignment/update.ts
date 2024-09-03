@@ -1,5 +1,4 @@
 import { Blob } from "@vjeko.com/azure-func";
-import { ALObjectType } from "../ALObjectType";
 import { ALNinjaRequestContext, AppInfo } from "../TypesV2";
 
 interface UpdateResult {
@@ -7,7 +6,7 @@ interface UpdateResult {
     success: boolean;
 }
 
-export async function addAssignment(appId: string, request: ALNinjaRequestContext, type: ALObjectType, id: number, fieldId?: number): Promise<UpdateResult> {
+export async function addAssignment(appId: string, request: ALNinjaRequestContext, storageId: string, idToAssign: number, content: any): Promise<UpdateResult> {
     let success = true;
 
     const blob = new Blob<AppInfo>(`${appId}.json`);
@@ -16,38 +15,20 @@ export async function addAssignment(appId: string, request: ALNinjaRequestContex
             app = {} as AppInfo;
         }
 
-        if (fieldId) {
-            let consumption = app[`${type}_${id}`] || [];
-            if (consumption.includes(fieldId)) {
-                success = false;
-                return app;
-            }
-            app[`${type}_${id}`] = [...consumption, fieldId].sort((left, right) => left - right);
-            request.log(app, "addAssignment", { type, id, fieldId });
-            return { ...app };
-        } else {
-
-            let consumption = app[type];
-            if (!consumption) {
-                consumption = [];
-            }
-
-            if (consumption.includes(id)) {
-                success = false;
-                return app;
-            }
-
-            app[type] = [...consumption, id].sort((left, right) => left - right);
-            request.log(app, "addAssignment", { type, id });
-
-            return { ...app };
+        let consumption = app[storageId] || [];
+        if (consumption.includes(idToAssign)) {
+            success = false;
+            return app;
         }
+        app[storageId] = [...consumption, idToAssign].sort((left, right) => left - right);
+        request.log(app, "addAssignment", content);
+        return { ...app };
     });
 
     return { app, success };
 }
 
-export async function removeAssignment(appId: string, request: ALNinjaRequestContext, type: ALObjectType, id: number, fieldId?: number): Promise<UpdateResult> {
+export async function removeAssignment(appId: string, request: ALNinjaRequestContext, storageId: string, idToRemove: number, content: any): Promise<UpdateResult> {
     let success = true;
 
     const blob = new Blob<AppInfo>(`${appId}.json`);
@@ -57,29 +38,17 @@ export async function removeAssignment(appId: string, request: ALNinjaRequestCon
             return app;
         }
 
-        if (fieldId) {
-            let consumption: number[] = app[`${type}_${id}`] || [];
-            if (!consumption.includes(fieldId)) {
-                return app;
-            }
-            app[`${type}_${id}`] = consumption.filter(x => x !== fieldId);
-            if((app[`${type}_${id}`] as number[]).length === 0)
-                delete app[`${type}_${id}`];
-            request.log(app, "removeAssignment", { type, id, fieldId });
-            return { ...app };
-        } else {
-            let consumption = app[type];
-            if (!consumption || !consumption.includes(id)) {
-                return app;
-            }
-
-            app[type] = consumption.filter(x => x !== id);
-            if((app[type] as number[]).length === 0)
-                delete app[type];
-            request.log(app, "removeAssignment", { type, id });
-
-            return { ...app };
+        let consumption: number[] = app[storageId] || [];
+        if (!consumption.includes(idToRemove)) {
+            return app;
         }
+
+        app[storageId] = consumption.filter(x => x !== idToRemove);
+        if ((app[storageId] as number[]).length === 0)
+            delete app[storageId];
+        request.log(app, "removeAssignment", content);
+
+        return { ...app };
     });
 
     return { app, success };
