@@ -1,7 +1,8 @@
+import { ALObjectType } from "../ALObjectType";
 import { Range } from "../TypesV2";
 
 export interface GetNextRequest {
-    type: string;
+    type: ALObjectType | string;
     ranges: Range[];
     perRange?: boolean;
     require?: number;

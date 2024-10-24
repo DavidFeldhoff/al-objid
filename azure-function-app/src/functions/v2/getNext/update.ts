@@ -2,13 +2,14 @@ import { Blob } from "@vjeko.com/azure-func";
 import { findFirstAvailableId } from "../../../common/util";
 import { ALNinjaRequestContext, AppInfo, Range } from "../TypesV2";
 import { ConsumptionUpdateContext } from "./types";
+import { ALObjectType } from "../ALObjectType";
 
 interface UpdateResult {
     app: AppInfo;
     success: boolean;
 }
 
-export async function updateConsumption(appId: string, request: ALNinjaRequestContext, type: string, storageId: string, assignFromRanges: Range[], appRanges: Range[], context: ConsumptionUpdateContext): Promise<UpdateResult> {
+export async function updateConsumption(appId: string, request: ALNinjaRequestContext, type: ALObjectType | string, storageId: string, assignFromRanges: Range[], appRanges: Range[], context: ConsumptionUpdateContext): Promise<UpdateResult> {
     let success = true;
 
     const blob = new Blob<AppInfo>(`${appId}.json`);
