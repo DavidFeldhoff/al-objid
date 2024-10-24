@@ -30,7 +30,7 @@ export interface GitBranchInfo {
 export class Git {
     //#region Singleton
     private static _instance: Git;
-    private constructor() {}
+    private constructor() { }
 
     public static get instance(): Git {
         return this._instance || (this._instance = new Git());
@@ -128,13 +128,17 @@ export class Git {
         // If git extension is active, we can use it to obtain the results faster
         if (git) {
             let repo = git.getRepository(uri);
-            if (!repo) return;
+            if (!repo) {
+                return;
+            }
             return repo.rootUri;
         }
 
         // Git extension is not active, we must do this through raw git (which is slower)
         let result = await this.getTopLevelPath(uri);
-        if (!result) return;
+        if (!result) {
+            return;
+        }
         let repoUri = Uri.file(result.trim());
         return repoUri;
     }
@@ -159,13 +163,17 @@ export class Git {
      */
     public async branches(uri: Uri): Promise<GitBranchInfo[] | null> {
         let output = (await this.execute("branch --all -vv", uri, false)) as string;
-        if (!output) return null;
+        if (!output) {
+            return null;
+        }
 
         let regex =
             /^(?<current>\*)?\s*(?<name>.+?)\s+(?<sha>[a-f0-9]+?)\s(\[(?<tracks>.+?)\:?( ahead (?<ahead>\d+))?(\,? behind (?<behind>\d+))?\]\s)?(?<message>.+)$/gm;
         let raw = [];
         let match;
-        while ((match = regex.exec(output))) raw.push(match);
+        while ((match = regex.exec(output))) {
+            raw.push(match);
+        }
         let branches: GitBranchInfo[] = raw.map(branch => {
             let { name, tracks, current, ahead, behind, sha, message } = branch.groups!;
             return {
@@ -198,8 +206,12 @@ export class Git {
         }
         // Pass 2: exclude raw remote branches tracked by local and update remote sha
         for (let branch of branches) {
-            if (!branch.name && branch.tracks && tracked[branch.tracks]) continue;
-            if (branch.name && branch.tracks) branch.shaRemote = remoteSha[branch.tracks];
+            if (!branch.name && branch.tracks && tracked[branch.tracks]) {
+                continue;
+            }
+            if (branch.name && branch.tracks) {
+                branch.shaRemote = remoteSha[branch.tracks];
+            }
             result.push(branch);
         }
         return result;

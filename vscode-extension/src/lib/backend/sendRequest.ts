@@ -93,7 +93,9 @@ export async function sendRequest<T>(
             output.log(`Sending ${method} request to ${path} endpoint resulted in an error: ${JSON.stringify(error)}`);
             response.error = error;
             response.status = API_RESULT.ERROR_NOT_HANDLED;
-            if (!errorHandler || !(await errorHandler(response, request))) handleHttpErrorDefault(response, request);
+            if (!errorHandler || !(await errorHandler(response, request))) {
+                handleHttpErrorDefault(response, request);
+            }
         }
         return response;
     }, `Sending ${method} request to ${path} endpoint`);

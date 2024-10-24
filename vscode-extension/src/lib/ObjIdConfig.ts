@@ -79,13 +79,14 @@ export class ObjIdConfig {
         }
 
         const key = Symbol.for(`before:${property}`);
-        if (!(this._config as any)[key])
+        if (!(this._config as any)[key]) {
             (this._config as any)[key] = [
                 {
                     type: "LineComment",
                     value: ` ${value}`,
                 },
             ];
+        }
     }
 
     private removeComment(config: any, property: ConfigurationProperty) {
@@ -210,8 +211,9 @@ export class ObjIdConfig {
      * @returns Ranges explicitly defined for specified object type
      */
     getObjectTypeRanges(objectType: string): NinjaALRange[] {
-        if (objectType.includes("_") && Config.instance.fieldAndValueIdsStayInsideObjectRange)
+        if (objectType.includes("_") && Config.instance.fieldAndValueIdsStayInsideObjectRange) {
             objectType = objectType.split("_")[0];
+        }
         return this.objectRanges[objectType] || this.idRanges;
     }
 

@@ -28,7 +28,9 @@ export class Output extends DisposableHolder {
                 // Just log
                 break;
             case LogLevel.Verbose:
-                if (!Config.instance.useVerboseOutputLogging) return;
+                if (!Config.instance.useVerboseOutputLogging) {
+                    return;
+                }
                 break;
         }
 

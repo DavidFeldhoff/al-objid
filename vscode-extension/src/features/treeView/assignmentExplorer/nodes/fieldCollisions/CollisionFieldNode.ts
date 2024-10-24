@@ -32,8 +32,9 @@ export class CollisionFieldNode extends AppsAwareDescendantNode implements Assig
         this._description = fieldOrValue.id.toString();
         this._storageId = getStorageIdLight(object);
 
-        if (this.apps.every(app => app.config.appPoolId === this.apps[0].config.appPoolId))
+        if (this.apps.every(app => app.config.appPoolId === this.apps[0].config.appPoolId)) {
             this._contextValues.push(ContextValues.StoreAssignment);
+        }
     }
 
     protected override completeTreeItem(item: TreeItem): void {

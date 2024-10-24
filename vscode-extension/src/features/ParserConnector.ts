@@ -53,15 +53,17 @@ export class ParserConnector implements Disposable {
     }
 
     public async getExtendInfos(extensionType: string, path: string, lines: string[] = readFileSync(path, 'utf8').split('\n'), updateDependencyCache: boolean = true): Promise<{ extends: string; extendsNamespace: string, extendsId: number } | undefined> {
-        if (!["tableextension", "enumextension"].includes(extensionType.toLowerCase()))
+        if (!["tableextension", "enumextension"].includes(extensionType.toLowerCase())) {
             return undefined;
+        }
         const regex = new RegExp(`${extensionType} \\d+ ("[^"]+"|\\w+) extends (?:(?<namespace>(?:[^".\\n]+\\.)*[^".\\n]+)\\.)?(?<objectname>"[^"]+"|\\w+)`, 'i');
         for (let lineNo = 0; lineNo < lines.length; lineNo++) {
             const match = lines[lineNo].match(regex);
             if (match && match.index !== undefined && match.groups?.objectname) {
                 let namespaceAndId = await findNamespaceAndIdInDependencyPackages(Uri.file(path), lineNo, extensionType, match.groups!.objectname, updateDependencyCache);
-                if (namespaceAndId)
+                if (namespaceAndId) {
                     return { extends: match.groups?.objectname, extendsNamespace: namespaceAndId.namespace, extendsId: namespaceAndId.id };
+                }
             }
         }
     }

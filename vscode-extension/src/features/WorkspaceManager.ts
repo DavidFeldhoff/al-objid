@@ -155,7 +155,9 @@ export class WorkspaceManager implements Disposable {
         quickPick.ignoreFocusOut = multi;
 
         let result = await (multi ? quickPick.pickMany() : quickPick.pickOne());
-        if (!result) return undefined;
+        if (!result) {
+            return undefined;
+        }
         return result;
     }
 

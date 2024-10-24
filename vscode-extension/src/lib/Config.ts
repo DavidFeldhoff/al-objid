@@ -20,7 +20,9 @@ export class Config extends DisposableHolder {
         this._config = workspace.getConfiguration(CONFIG_SECTION);
         this.registerDisposable(
             workspace.onDidChangeConfiguration(event => {
-                if (this._updatesPaused) return;
+                if (this._updatesPaused) {
+                    return;
+                }
                 if (event.affectsConfiguration(CONFIG_SECTION)) {
                     this._config = workspace.getConfiguration(CONFIG_SECTION);
                     this._onConfigChanged.fire({});
@@ -38,7 +40,9 @@ export class Config extends DisposableHolder {
 
     private getWithDefault<T>(setting: string, defaultValue: T) {
         let config = this._config.get<T>(setting);
-        if (typeof config === "undefined") config = defaultValue;
+        if (typeof config === "undefined") {
+            config = defaultValue;
+        }
         return config;
     }
 

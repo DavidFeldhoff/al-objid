@@ -25,8 +25,9 @@ export class CollisionNode extends AppsAwareDescendantNode implements Assignment
         this._uri = Uri.file(object.path);
         this._label = object.path.split(/[\\|\/]/).pop()!;
         this._description = object.id.toString();
-        if (this.apps.every(app => app.config.appPoolId === this.apps[0].config.appPoolId))
+        if (this.apps.every(app => app.config.appPoolId === this.apps[0].config.appPoolId)) {
             this._contextValues.push(ContextValues.StoreAssignment);
+        }
     }
 
     protected override completeTreeItem(item: TreeItem): void {

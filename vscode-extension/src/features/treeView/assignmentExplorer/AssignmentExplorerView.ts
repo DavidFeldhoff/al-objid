@@ -39,9 +39,9 @@ export class AssignmentExplorerView extends NinjaTreeView {
 
     protected override refreshAfterConfigChange(app: ALApp): void {
         const node = this._appRoots.get(app);
-        if (node && node.uri.authority === app.appId)
+        if (node && node.uri.authority === app.appId) {
             this._onDidChangeTreeData.fire(node);
-        else {
+        } else {
             // uri.authority which is app.hash or poolId has changed = root node has changed
             this._rootNodesInitialized = false;
             this._onDidChangeTreeData.fire();

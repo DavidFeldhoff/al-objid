@@ -13,7 +13,9 @@ export class QuickPickWrapper<T> {
     private _resolveMany?: (result: T[]) => void;
 
     private resolve(success: boolean) {
-        if (this._resolved) return;
+        if (this._resolved) {
+            return;
+        }
 
         this._resolved = true;
         if (this._quickPick.canSelectMany) {

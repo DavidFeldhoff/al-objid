@@ -59,7 +59,9 @@ export class AssigmentMonitor implements Disposable {
     }
 
     private onDidCreate(uri: Uri) {
-        if (this._updatesPaused) return;
+        if (this._updatesPaused) {
+            return;
+        }
         if (this._pending.created.some(u => u.fsPath === uri.fsPath)) {
             return;
         }
@@ -68,7 +70,9 @@ export class AssigmentMonitor implements Disposable {
     }
 
     private onDidChange(uri: Uri) {
-        if (this._updatesPaused) return;
+        if (this._updatesPaused) {
+            return;
+        }
         if (this._pending.changed.some(u => u.fsPath === uri.fsPath)) {
             return;
         }
@@ -77,7 +81,9 @@ export class AssigmentMonitor implements Disposable {
     }
 
     private onDidDelete(uri: Uri) {
-        if (this._updatesPaused) return;
+        if (this._updatesPaused) {
+            return;
+        }
         if (this._pending.deleted.some(u => u.fsPath === uri.fsPath)) {
             return;
         }
@@ -86,7 +92,9 @@ export class AssigmentMonitor implements Disposable {
     }
 
     private scheduleRefreshObjects() {
-        if (this._updatesPaused) return;
+        if (this._updatesPaused) {
+            return;
+        }
         if (this._timeout) {
             clearTimeout(this._timeout);
         }
@@ -130,8 +138,9 @@ export class AssigmentMonitor implements Disposable {
     }
 
     private async refreshObjects() {
-        if (this._refreshPromise)
+        if (this._refreshPromise) {
             return this._refreshPromise;
+        }
         this._refreshPromise = new Promise<void>(async (resolve, reject) => {
             try {
                 output.log("Refreshing object ID consumption after change in workspace AL files", LogLevel.Verbose);
@@ -168,13 +177,16 @@ export class AssigmentMonitor implements Disposable {
 
         dirtyObjects.forEach(dirtyObject => {
             const object = (this._objects || []).find(object => object.path === dirtyObject.uri.fsPath && object.type.toLowerCase() === dirtyObject.type.toLowerCase());
-            if (object)
+            if (object) {
                 object.id = dirtyObject.id;
+            }
         });
     }
 
     private async refreshConsumption(consumption: ConsumptionDataOfObject, fieldConsumption: ConsumptionDataOfField) {
-        if (this._updatesPaused) return;
+        if (this._updatesPaused) {
+            return;
+        }
         await this.refreshObjects();
         this._consumption = consumption;
         this._fieldConsumption = fieldConsumption;
@@ -219,24 +231,28 @@ export class AssigmentMonitor implements Disposable {
                     let name: string | undefined;
                     let lostIds = consumedObject.ids;
                     for (const object of objects) {
-                        if (!name)
-                            if (consumedObject.type.includes('extension') || !object.type.includes('extension'))
+                        if (!name) {
+                            if (consumedObject.type.includes('extension') || !object.type.includes('extension')) {
                                 name = object.name;
-                            else if (object.type.includes('extension') && object.extends)
+                            } else if (object.type.includes('extension') && object.extends) {
                                 name = object.extends;
+                            }
+                        }
                         const objectEntityIds = getAlObjectEntityIds(object);
                         lostIds = lostIds.filter(id => !objectEntityIds.map(e => e.id).includes(id));
                     }
-                    if (lostIds.length > 0)
+                    if (lostIds.length > 0) {
                         this._lostFieldIds.push({ type: consumedObject.type, id: consumedObject.objectId, name: name, possiblePaths: objects.map(o => o.path), fieldOrValueIds: lostIds });
+                    }
                 }
             }
 
             this._unassignedFields = [];
             for (const object of this._objects) {
                 const entities = getAlObjectEntityIds(object);
-                if (entities.length === 0)
+                if (entities.length === 0) {
                     continue;
+                }
                 const storageId = getStorageIdLight(object);
                 const consumedObject = consumedObjectsAndFields.find(consumedObject => consumedObject.type === storageId.type && consumedObject.objectId === storageId.id);
                 if (!consumedObject) {
@@ -245,10 +261,11 @@ export class AssigmentMonitor implements Disposable {
                     const unassignedFieldIds = entities.filter(fieldOrValue => !consumedObject.ids.includes(fieldOrValue.id));
                     if (unassignedFieldIds.length > 0) {
                         const objCopy: ALObjectNamespace = JSON.parse(JSON.stringify(object));
-                        if (objCopy.fields)
+                        if (objCopy.fields) {
                             objCopy.fields = unassignedFieldIds;
-                        else
+                        } else {
                             objCopy.values = unassignedFieldIds;
+                        }
                         this._unassignedFields.push(objCopy);
                     }
                 }

@@ -109,8 +109,9 @@ export class ALAppPackage {
                 const objs = (symbolReference as unknown as unknown[])[key as keyof unknown[]] as SymbolReferenceObject[];
                 objs.forEach(obj => {
                     const type = this.symbolReferenceTypeToObjectType(key);
-                    if (type)
+                    if (type) {
                         objects.push({ type, id: obj.Id, name: obj.Name, namespace: currentNamespace });
+                    }
                 });
             }
         }

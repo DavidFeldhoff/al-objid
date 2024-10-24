@@ -24,7 +24,9 @@ const BranchInfo = {
         let name = "";
         if (branch.name) {
             name = branch.name;
-            if (branch.tracks) name += ` $(arrow-right) ${branch.tracks}`;
+            if (branch.tracks) {
+                name += ` $(arrow-right) ${branch.tracks}`;
+            }
         } else {
             name = `${branch.tracks!}`;
         }
@@ -32,13 +34,17 @@ const BranchInfo = {
     },
     getDetail(branch: GitBranchInfo) {
         if (branch.name) {
-            if (!branch.tracks) return "Local-only branch";
+            if (!branch.tracks) {
+                return "Local-only branch";
+            }
             if (branch.ahead === 0 && branch.behind === 0) {
                 return "Local and remote branches are in sync";
             }
             if (branch.ahead) {
                 let result = `Local is ahead of remote by ${branch.ahead} commit(s)`;
-                if (branch.behind) result += ` and behind it by ${branch.behind} commits`;
+                if (branch.behind) {
+                    result += ` and behind it by ${branch.behind} commits`;
+                }
                 return result;
             }
             if (branch.behind > 0) {
@@ -81,11 +87,14 @@ async function updateObjectDefinitions(uri: Uri, consumption: ConsumptionInfo) {
 async function syncFoldersForConfiguration(config: AutoSyncConfiguration, consumptions: PropertyBag<ConsumptionInfo>) {
     const errorFolders: GetConsumptionErrorFolder[] = [];
     for (let folder of config.folders) {
-        if (!consumptions[folder.fsPath]) consumptions[folder.fsPath] = {};
+        if (!consumptions[folder.fsPath]) {
+            consumptions[folder.fsPath] = {};
+        }
         output.log(`[auto-sync-object-ids] Start updating object definitions for ${folder.fsPath}...`, LogLevel.Verbose);
         const errorEntries = await updateObjectDefinitions(folder, consumptions[folder.fsPath]);
-        if (errorEntries.length > 0)
+        if (errorEntries.length > 0) {
             errorFolders.push({ folder: folder.fsPath, errorEntries });
+        }
         output.log(`[auto-sync-object-ids] Updating object definitions for ${folder.fsPath} done.`, LogLevel.Verbose);
     }
     return errorFolders;
@@ -108,8 +117,9 @@ async function syncSingleConfiguration(config: AutoSyncConfiguration, consumptio
                 output.log(`[auto-sync-object-ids] Synchronizing folders for branch ${branch}...`, LogLevel.Verbose);
 
                 const errorFolders = await syncFoldersForConfiguration(config, consumptions);
-                if (errorFolders.length > 0)
+                if (errorFolders.length > 0) {
                     branchErrors.push({ branch, errorFolders });
+                }
 
                 if (branch !== currentBranch) {
                     output.log(`[auto-sync-object-ids] Switching back to branch ${currentBranch}...`, LogLevel.Verbose);
@@ -128,8 +138,9 @@ async function syncSingleConfiguration(config: AutoSyncConfiguration, consumptio
 
                 output.log(`[auto-sync-object-ids] Synchronizing folders for branch ${newBranch}...`, LogLevel.Verbose);
                 const errorFolders = await syncFoldersForConfiguration(config, consumptions);
-                if (errorFolders.length > 0)
+                if (errorFolders.length > 0) {
                     branchErrors.push({ branch, errorFolders });
+                }
 
                 output.log(`[auto-sync-object-ids] Switching back to branch ${currentBranch}...`, LogLevel.Verbose);
                 await Git.instance.checkout(repo, currentBranch);
@@ -141,8 +152,9 @@ async function syncSingleConfiguration(config: AutoSyncConfiguration, consumptio
     }
     output.log(`[auto-sync-object-ids] Synchronizing folders without repo (Config: ${JSON.stringify(config)})`, LogLevel.Verbose);
     const errorFolders = await syncFoldersForConfiguration(config, consumptions);
-    if (errorFolders.length > 0)
+    if (errorFolders.length > 0) {
         branchErrors.push({ branch: "no git repo", errorFolders });
+    }
     return branchErrors;
 }
 
@@ -228,8 +240,9 @@ export const autoSyncObjectIds = async () => {
     }
 
     let result = await window.withProgress({ location: ProgressLocation.Notification }, async progress => {
-        if (!workspace.workspaceFolders || !workspace.workspaceFolders.length)
+        if (!workspace.workspaceFolders || !workspace.workspaceFolders.length) {
             return autoSyncResult(AutoSyncResult.NoALFolders);
+        }
 
         // Pick folders
         let apps = auto ? WorkspaceManager.instance.alApps : await WorkspaceManager.instance.pickFolders();
@@ -238,8 +251,9 @@ export const autoSyncObjectIds = async () => {
         }
 
         // Load dependencies once to use the cached ones later
-        for (let app of apps)
+        for (let app of apps) {
             await app.getDependencies();
+        }
 
         // Deactivate updates due avoid conflicts on heavy branch switching
         apps.forEach(app => app.setUpdatesPaused(true));
@@ -261,12 +275,18 @@ export const autoSyncObjectIds = async () => {
             }
 
             let repoPath = root.fsPath;
-            if (!repoFolders[repoPath]) repoFolders[repoPath] = [];
+            if (!repoFolders[repoPath]) {
+                repoFolders[repoPath] = [];
+            }
             repoFolders[repoPath].push(app.uri);
 
-            if (repos.find(repo => repo.fsPath === repoPath)) continue;
+            if (repos.find(repo => repo.fsPath === repoPath)) {
+                continue;
+            }
 
-            if (!(await Git.instance.isClean(root))) return autoSyncResult(AutoSyncResult.GitDirty, root);
+            if (!(await Git.instance.isClean(root))) {
+                return autoSyncResult(AutoSyncResult.GitDirty, root);
+            }
             repos.push(root);
         }
 
@@ -292,7 +312,9 @@ export const autoSyncObjectIds = async () => {
         // Iterate through all repos and pick the branches
         for (let repo of repos) {
             let repoBranches = branches[repo.fsPath];
-            if (repoBranches === null) continue;
+            if (repoBranches === null) {
+                continue;
+            }
 
             // Pick from list of branches
             if (repoBranches.length > 1 && !auto) {
@@ -309,7 +331,9 @@ export const autoSyncObjectIds = async () => {
                 );
                 quickPick.placeholder = `Which branches would you like to synchronize for ${getRepoName(repo)}?`;
                 let picked = await quickPick.pickMany();
-                if (!picked.length) continue;
+                if (!picked.length) {
+                    continue;
+                }
                 repoBranches = picked;
             }
 
@@ -321,21 +345,28 @@ export const autoSyncObjectIds = async () => {
                 });
                 if (branch.ahead || branch.behind) {
                     if (auto) {
-                        if (branch.ahead) config.branchesLocal.push(branch.name!);
-                        if (branch.behind) config.branchesRemote.push(branch.name!);
+                        if (branch.ahead) {
+                            config.branchesLocal.push(branch.name!);
+                        }
+                        if (branch.behind) {
+                            config.branchesRemote.push(branch.name!);
+                        }
                     } else {
                         let picks = [
                             `Local (${BranchInfo.getChooseLocalText(branch)})`,
                             `Remote (${BranchInfo.getChooseRemoteText(branch)})`,
                         ];
-                        if (branch.ahead && branch.behind)
+                        if (branch.ahead && branch.behind) {
                             picks.push(`Both (includes all information from local and remote)`);
+                        }
                         let choice = await window.showQuickPick(picks, {
                             placeHolder: `How do you want to synchronize branch ${branch.name} of ${getRepoName(
                                 repo
                             )}?`,
                         });
-                        if (!choice) continue;
+                        if (!choice) {
+                            continue;
+                        }
                         switch (choice.split(" ")[0]) {
                             case "Local":
                                 config.branchesLocal.push(branch.name!);
@@ -370,8 +401,9 @@ export const autoSyncObjectIds = async () => {
                 message: `Finding object IDs in ${config.repo ? `repo ${getRepoName(config.repo)}` : "workspace"}...`,
             });
             const errorBranches = await syncSingleConfiguration(config, consumptions);
-            if (Object.keys(errorBranches).length > 0)
+            if (Object.keys(errorBranches).length > 0) {
                 syncErrors.push({ repo: config.repo?.fsPath || "workspace", errorBranches });
+            }
         }
 
         // Activate updates again after heavy branch switching
@@ -384,10 +416,11 @@ export const autoSyncObjectIds = async () => {
 
         Telemetry.instance.logCommand(NinjaCommand.AutoSyncObjectIds);
         await Backend.autoSyncIds(payload, false);
-        if (Object.keys(syncErrors).length === 0)
+        if (Object.keys(syncErrors).length === 0) {
             return autoSyncResult(AutoSyncResult.Success);
-        else
+        } else {
             return autoSyncResult(AutoSyncResult.SuccessWithWarnings, syncErrors);
+        }
 
     });
 

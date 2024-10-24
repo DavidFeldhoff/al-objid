@@ -30,8 +30,9 @@ export class LostNode extends AppsAwareDescendantNode implements AssignmentIdCon
         this._decoration = {
             severity: DecorationSeverity.inactive,
         };
-        if (this.apps.every(app => app.config.appPoolId === this.apps[0].config.appPoolId))
+        if (this.apps.every(app => app.config.appPoolId === this.apps[0].config.appPoolId)) {
             this._contextValues.push(ContextValues.ReclaimId);
+        }
     }
 
     // AssignmentIdContext implementation

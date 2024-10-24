@@ -296,8 +296,9 @@ async function processReport(report: ObjectConsumption[], apps: ALApp[]): Promis
 export async function reportConsumption(context?: AppsCommandContext) {
     Telemetry.instance.logCommand(NinjaCommand.ReportConsumption);
     if (context && context.apps.length > 1) {
-        if (!context.apps.every(app => app.config.appPoolId && app.config.appPoolId === context.apps[0].config.appPoolId))
+        if (!context.apps.every(app => app.config.appPoolId && app.config.appPoolId === context.apps[0].config.appPoolId)) {
             throw new Error("All apps must belong to the same pool");
+        }
     }
     const app = context?.apps && context.apps.length > 0 && context?.apps[0] || (await WorkspaceManager.instance.pickFolder("to report object consumption"));
     if (!app) {

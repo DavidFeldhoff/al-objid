@@ -24,7 +24,9 @@ function getSymbolInChildren(
         }
     }
     for (let symbol of symbols) {
-        if (!symbol.children || !symbol.children.length) continue;
+        if (!symbol.children || !symbol.children.length) {
+            continue;
+        }
         let result = getSymbolInChildren(position, symbol.children, bestMatch, matches);
         if (result) {
             bestMatch = getBestMatch(result, bestMatch);

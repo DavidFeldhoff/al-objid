@@ -11,7 +11,11 @@
     "rules": {
         "@typescript-eslint/naming-convention": "off",
         "@typescript-eslint/semi": "warn",
-        "curly": "off",
+        "curly": "warn",
+        "brace-style": [
+            "warn",
+            "1tbs"
+        ],
         "eqeqeq": "warn",
         "no-throw-literal": "warn",
         "semi": "off"

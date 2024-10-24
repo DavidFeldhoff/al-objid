@@ -34,8 +34,9 @@ export class LogicalObjectTypeNode extends ObjectTypeNode implements GoToDefinit
     constructor(parent: AppsAwareNode, objectType: string) {
         super(parent, objectType);
         this._tooltip = `Logical ranges for ${objectType} objects, defined in .objidconfig`;
-        if (this.apps.length === 1)
+        if (this.apps.length === 1) {
             this._contextValues.push(ContextValues.GotoDef);
+        }
     }
 
     protected override getChildren(): Node[] {

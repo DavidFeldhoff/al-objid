@@ -11,8 +11,9 @@ export async function findNamespaceAndIdInDependencyPackages(uri: Uri, objectDec
     const usings: string[] = [];
     for (const line of possibleUsingLines) {
         const match = line.match(regexUsing);
-        if (match)
+        if (match) {
             usings.push(match[1]);
+        }
     }
     const alAppPackages = await WorkspaceManager.instance.getALAppFromUri(uri)?.getDependencies(updateDependencyCache) || [];
     const objectOfInterest = extensionObjectType.toLowerCase() === "tableextension" ? ALObjectType.table : ALObjectType.enum;
@@ -20,8 +21,9 @@ export async function findNamespaceAndIdInDependencyPackages(uri: Uri, objectDec
         const baseObject = alAppPackage.flattenDependencies([objectOfInterest]).find(obj =>
             (obj.namespace === undefined || obj.namespace === "" || usings.length === 0 || usings.some(using => using.toLowerCase() === obj.namespace.toLowerCase())) &&
             obj.name && obj.name.replace(/"/g, "").toLowerCase() === baseObjectName.replace(/"/g, "").toLowerCase());
-        if (baseObject)
+        if (baseObject) {
             return { id: baseObject.id, namespace: baseObject.namespace };
+        }
     }
 
     output.log(`[Get Namespace] Error: Could not find namespace for ${uri.fsPath}`, LogLevel.Info);

@@ -174,7 +174,9 @@ async function getTypeAtPositionRaw(
             .slice(0, pos.line + 1);
         lines[lines.length - 1] = lines[lines.length - 1].substring(0, pos.character);
         const text = lines.join("").trim();
-        if (text.toLowerCase() === type.toLowerCase()) return type;
+        if (text.toLowerCase() === type.toLowerCase()) {
+            return type;
+        }
     }
     return null;
 }

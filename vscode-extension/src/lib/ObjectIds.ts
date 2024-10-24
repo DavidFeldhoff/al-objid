@@ -33,12 +33,15 @@ export async function updateActualConsumption(objects: ALObject[], consumption: 
             });
             continue;
         }
-        if (!consumption[type]) consumption[type] = [];
+        if (!consumption[type]) {
+            consumption[type] = [];
+        }
         consumption[type].push(id);
 
         const fieldsOrValues = getAlObjectEntityIds(object);
-        if (fieldsOrValues.length === 0)
+        if (fieldsOrValues.length === 0) {
             continue;
+        }
 
         let typeAndId = await getStorageIdOfALObject(object, updateDependencyCache);
         if (!typeAndId) {
@@ -62,7 +65,8 @@ export async function updateActualConsumption(objects: ALObject[], consumption: 
 export async function getActualConsumption(objects: ALObject[], errorEntries?: GetConsumptionErrorEntry[]): Promise<ConsumptionInfo> {
     const consumption: ConsumptionInfo = {};
     const entries = await updateActualConsumption(objects, consumption, true);
-    if (errorEntries)
+    if (errorEntries) {
         errorEntries = entries;
+    }
     return consumption;
 }

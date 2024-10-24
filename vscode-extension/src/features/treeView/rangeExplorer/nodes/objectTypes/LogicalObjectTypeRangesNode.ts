@@ -43,8 +43,9 @@ export class LogicalObjectTypeRangesNode
         this._label = name;
         this._tooltip = `Logical ranges for ${objectType} objects, named ${name}, defined in .objidconfig`;
         this._uriPathPart = name || "_";
-        if (this.apps.length === 1)
+        if (this.apps.length === 1) {
             this._contextValues.push(ContextValues.GotoDef);
+        }
     }
 
     protected override getChildren(): Node[] {

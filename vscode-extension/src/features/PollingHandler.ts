@@ -106,8 +106,12 @@ export class PollingHandler implements Disposable {
     }
 
     public dispose() {
-        if (!this._disposed) return;
-        if (this._timeout) clearTimeout(this._timeout);
+        if (!this._disposed) {
+            return;
+        }
+        if (this._timeout) {
+            clearTimeout(this._timeout);
+        }
         this._disposed = true;
         this._timeout = undefined;
     }

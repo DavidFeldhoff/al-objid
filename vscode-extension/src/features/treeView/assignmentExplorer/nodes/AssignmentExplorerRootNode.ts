@@ -96,12 +96,14 @@ export class AssignmentExplorerRootNode extends RootNode implements AppsAwareNod
         let children: Node[] = [];
 
         children.push(new CollisionsGroupNode(this, this._unassigned));
-        if (!this._apps.some(app => app.config.appPoolId))
+        if (!this._apps.some(app => app.config.appPoolId)) {
             children.push(new LostGroupNode(this, this._lost));
+        }
 
         children.push(new CollisionFieldObjectTypeGroupNode(this, this._unassignedFields));
-        if (!this._apps.some(app => app.config.appPoolId))
+        if (!this._apps.some(app => app.config.appPoolId)) {
             children.push(new LostFieldObjectTypeGroupNode(this, this._lostFields));
+        }
 
         return children;
     }

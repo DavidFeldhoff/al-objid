@@ -30,8 +30,9 @@ export class PhysicalRangesGroupNode
 
     constructor(parent: AppsAwareNode) {
         super(parent);
-        if (this._contextValues.length === 1)
+        if (this._contextValues.length === 1) {
             this._contextValues.push(ContextValues.GotoDef, ContextValues.CopyRanges);
+        }
     }
 
     public override getChildren(): Node[] {

@@ -23,8 +23,9 @@ export class LostFieldObjectNode extends AppsAwareDescendantNode {
     constructor(parent: AppsAwareNode, object: AssignedALObject) {
         super(parent);
         this._object = object;
-        if (object.possiblePaths && object.possiblePaths.length === 1)
+        if (object.possiblePaths && object.possiblePaths.length === 1) {
             this._uri = Uri.file(object.possiblePaths[0]);
+        }
         this._uriPathPart = object.id.toString();
         this._label = object.name || object.id.toString();
         this._description = object.name ? object.id.toString() : "";
@@ -41,7 +42,7 @@ export class LostFieldObjectNode extends AppsAwareDescendantNode {
     }
     protected override completeTreeItem(item: TreeItem): void {
         super.completeTreeItem(item);
-        if (item.resourceUri)
+        if (item.resourceUri) {
             item.command = {
                 command: "vscode.open",
                 arguments: [
@@ -49,6 +50,7 @@ export class LostFieldObjectNode extends AppsAwareDescendantNode {
                 ],
                 title: "",
             };
+        }
         //TODO: Show paths of possible files as quickpick and then open document
     }
 }

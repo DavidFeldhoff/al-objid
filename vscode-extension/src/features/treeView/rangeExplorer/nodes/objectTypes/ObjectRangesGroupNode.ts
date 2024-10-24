@@ -28,8 +28,9 @@ export class ObjectRangesGroupNode
 
     constructor(parent: AppsAwareNode) {
         super(parent);
-        if (this.apps.length === 1)
+        if (this.apps.length === 1) {
             this._contextValues.push(ContextValues.GotoDef);
+        }
     }
 
     public override getChildren(): Node[] {

@@ -173,7 +173,9 @@ export class NewsHandler implements Disposable {
     }
 
     public dispose() {
-        if (!this._disposed) return;
+        if (!this._disposed) {
+            return;
+        }
         if (this._timeout) {
             clearTimeout(this._timeout);
         }

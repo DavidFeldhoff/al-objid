@@ -64,8 +64,9 @@ export class ConsumptionWarnings {
             });
         }
         let idRanges: ALRange[] = app?.manifest.idRanges || [];
-        if (app.config.idRanges)
+        if (app.config.idRanges) {
             idRanges = app.config.idRanges;
+        }
 
         for (let type of Object.keys(consumption)) {
             let available = 0;
@@ -102,8 +103,9 @@ export class ConsumptionWarnings {
             });
         }
         let idRanges: ALRange[] = app?.manifest.idRanges || [];
-        if (app.config.idRanges)
+        if (app.config.idRanges) {
             idRanges = app.config.idRanges;
+        }
 
         for (let fieldConsumptionKey of Object.keys(consumption)) {
             let available = 0;

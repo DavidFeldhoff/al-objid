@@ -25,8 +25,9 @@ export class LostFieldNode extends AppsAwareDescendantNode implements Assignment
         super(parent);
         this._object = object;
         this._fieldOrValueId = fieldOrValueId;
-        if (object.possiblePaths && object.possiblePaths.length === 1)
+        if (object.possiblePaths && object.possiblePaths.length === 1) {
             this._uri = Uri.file(object.possiblePaths[0]);
+        }
 
         this._uriPathPart = fieldOrValueId.toString();
         this._label = fieldOrValueId.toString();
@@ -36,13 +37,14 @@ export class LostFieldNode extends AppsAwareDescendantNode implements Assignment
             severity: DecorationSeverity.inactive,
         };
 
-        if (this.apps.every(app => app.config.appPoolId === this.apps[0].config.appPoolId))
+        if (this.apps.every(app => app.config.appPoolId === this.apps[0].config.appPoolId)) {
             this._contextValues.push(ContextValues.ReclaimId);
+        }
     }
 
     protected override completeTreeItem(item: TreeItem): void {
         super.completeTreeItem(item);
-        if (item.resourceUri)
+        if (item.resourceUri) {
             item.command = {
                 command: "vscode.open",
                 arguments: [
@@ -50,6 +52,7 @@ export class LostFieldNode extends AppsAwareDescendantNode implements Assignment
                 ],
                 title: "",
             };
+        }
     }
 
     // AssignmentIdContext implementation

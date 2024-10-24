@@ -18,7 +18,9 @@ export class Https {
     private options: Request;
     constructor(request: Request) {
         this.options = request;
-        if (!this.options.headers) this.options.headers = DEFAULT_HEADERS;
+        if (!this.options.headers) {
+            this.options.headers = DEFAULT_HEADERS;
+        }
     }
 
     accept(type: string) {

@@ -32,7 +32,9 @@ export const syncObjectIds = async (options?: SyncOptions) => {
         let consumption = await Backend.getConsumption(app);
         if (consumption?._total) {
             let answer = await UI.sync.showAreYouSure();
-            if (answer === LABELS.SYNC_ARE_YOU_SURE.NO) return;
+            if (answer === LABELS.SYNC_ARE_YOU_SURE.NO) {
+                return;
+            }
         }
     }
 

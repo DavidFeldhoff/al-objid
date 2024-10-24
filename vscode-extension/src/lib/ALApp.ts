@@ -55,7 +55,9 @@ export class ALApp implements Disposable, BackEndAppInfo {
             this._config,
             () => this,
             () => {
-                if (this._updatesPaused) return this.config;
+                if (this._updatesPaused) {
+                    return this.config;
+                }
                 const newConfig = this.setUpConfigFile();
                 this._onConfigChanged.fire(this);
                 return newConfig;
@@ -127,7 +129,9 @@ export class ALApp implements Disposable, BackEndAppInfo {
     }
 
     private onManifestChangedFromWatcher() {
-        if (this._updatesPaused) return;
+        if (this._updatesPaused) {
+            return;
+        }
         output.log(`Change detected on ${this._manifest.uri.fsPath}`);
         const manifest = ALAppManifest.tryCreate(this._manifest.uri);
         if (!manifest) {
@@ -219,13 +223,16 @@ export class ALApp implements Disposable, BackEndAppInfo {
      * @returns Infos of the .app-packages of the dependencies of this app while making use of a workspace dependency cache.
      */
     private async loadAllDependencies(): Promise<ALAppPackage[]> {
-        if (this._loadAllDependenciesPromise)
+        if (this._loadAllDependenciesPromise) {
             return this._loadAllDependenciesPromise;
+        }
         this._loadAllDependenciesPromise = executeWithStopwatchAsync(
             () => WorkspaceManager.instance.loadDependencyPackages(this),
             `Start loading dependency packages for ${this.name}`
         );
-        this._loadAllDependenciesPromise.then(() => { this._loadAllDependenciesPromise = undefined; });
+        this._loadAllDependenciesPromise.then(() => {
+            this._loadAllDependenciesPromise = undefined;
+        });
         return this._loadAllDependenciesPromise;
     }
 
@@ -259,10 +266,13 @@ export class ALApp implements Disposable, BackEndAppInfo {
         const uris: Uri[] = [];
         for (const packageCachePath of this.packageCachePaths) {
             const packageUri = path.isAbsolute(packageCachePath) ? Uri.file(packageCachePath) : Uri.file(path.join(this.uri.fsPath, packageCachePath));
-            if (fs.existsSync(packageUri.fsPath))
-                for (const file of fs.readdirSync(packageUri.fsPath, { withFileTypes: true }))
-                    if (file.isFile() && file.name.endsWith(".app"))
+            if (fs.existsSync(packageUri.fsPath)) {
+                for (const file of fs.readdirSync(packageUri.fsPath, { withFileTypes: true })) {
+                    if (file.isFile() && file.name.endsWith(".app")) {
                         uris.push(Uri.file(path.join(packageUri.fsPath, file.name)));
+                    }
+                }
+            }
         }
         return uris;
     }

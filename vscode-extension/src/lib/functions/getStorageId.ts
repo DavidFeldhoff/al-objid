@@ -14,8 +14,9 @@ import { ALObjectNamespace } from "../types/ALObjectNamespace";
  * @param alObject The ALObject to get the storage id for
  */
 export async function getStorageIdOfALObject(alObject: ALObject, updateDependencyCache: boolean): Promise<string | undefined> {
-    if (!Config.instance.storeExtensionValuesOrIdsOnBaseObject || !["tableextension", "enumextension"].includes(alObject.type.toLowerCase()))
+    if (!Config.instance.storeExtensionValuesOrIdsOnBaseObject || !["tableextension", "enumextension"].includes(alObject.type.toLowerCase())) {
         return `${alObject.type}_${alObject.id}`;
+    }
 
     let object: { type: string, id: number; extends: string | undefined; extendsNamespace?: string; path: string; } = {} as any;
     object.path = alObject.path;
@@ -42,8 +43,9 @@ export async function getStorageIdOfALObject(alObject: ALObject, updateDependenc
  * @param uri Uri of the extension document
  */
 export async function getStorageIdRAW(type: string, id: number, document: TextDocument): Promise<string | undefined> {
-    if (!Config.instance.storeExtensionValuesOrIdsOnBaseObject || !["tableextension", "enumextension"].includes(type.toLowerCase()))
+    if (!Config.instance.storeExtensionValuesOrIdsOnBaseObject || !["tableextension", "enumextension"].includes(type.toLowerCase())) {
         return `${type}_${id}`;
+    }
     const extendedObjectDetails = await getExtendedObjectDetails(type, document!);
     return await getStorageId({
         type,
@@ -56,8 +58,9 @@ export async function getStorageIdRAW(type: string, id: number, document: TextDo
 async function getStorageId(object: { type: string, id: number; extends: string | undefined; extendsNamespace?: string; path: string; }, updateDependencyCache: boolean): Promise<string | undefined> {
     if (object.extends) {
         const baseObjectId = await getExtendedId(object.type, object.extends, object.path, object.extendsNamespace || "", updateDependencyCache);
-        if (baseObjectId)
+        if (baseObjectId) {
             return `${object.type.replace("extension", "")}_${baseObjectId}`;
+        }
         window.showErrorMessage(`Ninja: Could not find base object ${object.extends} in the dependencies. This is needed to get the consumption data.`);
     }
     return undefined;

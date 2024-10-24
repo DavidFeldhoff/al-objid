@@ -10,10 +10,25 @@ import { window } from "vscode";
 
 export async function consolidateRanges(context: AppsCommandContext) {
     let app;
-    if (context?.apps)
-        app = context.apps.length === 1 ? context.apps[0] : (await window.showQuickPick(context.apps.map(app => { return { label: app.manifest.name, node: app }; }), { placeHolder: 'For which app do you want to consolidate the ranges?' }))?.node;
-    else
+    if (context?.apps) {
+        app = context.apps.length === 1 ?
+            context.apps[0] :
+            (
+                await window.showQuickPick(
+                    context.apps.map(app => {
+                        return {
+                            label: app.manifest.name,
+                            node: app
+                        };
+                    }),
+                    {
+                        placeHolder: 'For which app do you want to consolidate the ranges?'
+                    }
+                )
+            )?.node;
+    } else {
         app = await WorkspaceManager.instance.selectWorkspaceFolder();
+    }
     if (!app) {
         return;
     }

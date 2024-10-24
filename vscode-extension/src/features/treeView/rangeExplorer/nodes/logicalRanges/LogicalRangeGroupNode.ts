@@ -36,8 +36,9 @@ export class LogicalRangeGroupNode
         this._label = name;
         this._uriPathPart = name || "_";
 
-        if (this.apps.length === 1)
+        if (this.apps.length === 1) {
             this._contextValues.push(ContextValues.GotoDef);
+        }
     }
 
     protected override getChildren(): Node[] {
