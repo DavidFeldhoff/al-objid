@@ -74,7 +74,7 @@ export class ALAppPackage {
                 return new ALAppPackage(manifest, symbolReference, dependencyFileFullPath, statSync(dependencyFileFullPath).mtime);
             }
         } catch {
-            console.log(`dependencyFileFullPath failed: ${dependencyFileFullPath}`);
+            output.log(`Loading dependency file failed: ${dependencyFileFullPath}`);
             return undefined;
         }
     }
