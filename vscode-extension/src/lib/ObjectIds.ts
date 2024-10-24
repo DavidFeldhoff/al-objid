@@ -7,6 +7,7 @@ import { getStorageIdOfALObject } from "./functions/getStorageId";
 import { ALObjectNamespace } from "./types/ALObjectNamespace";
 import { getAlObjectEntityIds } from "./functions/getAlObjectEntityIds";
 import { GetConsumptionErrorEntry } from "./types/ConsumptionErrors";
+import { TempParserFix } from "./types/TempParserFix";
 
 export async function getWorkspaceFolderFiles(uri: Uri): Promise<Uri[]> {
     let folderPath: string = uri.fsPath;
@@ -17,8 +18,8 @@ export async function getWorkspaceFolderFiles(uri: Uri): Promise<Uri[]> {
     );
 }
 
-export async function getObjectDefinitions(uris: Uri[], tempFixFQN: { fixFqn: boolean, updateDependencyCache: boolean } = { fixFqn: true, updateDependencyCache: true }): Promise<ALObjectNamespace[]> {
-    return executeWithStopwatchAsync(() => ParserConnector.instance.parse(uris, tempFixFQN), `Parsing ${uris.length} object files`);
+export async function getObjectDefinitions(uris: Uri[], tempParserFix: TempParserFix = { shouldFixFullyQualifiedName: true, updateDependencyCache: true }): Promise<ALObjectNamespace[]> {
+    return executeWithStopwatchAsync(() => ParserConnector.instance.parse(uris, tempParserFix), `Parsing ${uris.length} object files`);
 }
 
 export async function updateActualConsumption(objects: ALObject[], consumption: ConsumptionInfo, updateDependencyCache: boolean) {

@@ -17,6 +17,7 @@ import openExternal from "../lib/functions/openExternal";
 import { Config } from "../lib/Config";
 import { PollingHandler } from "../features/PollingHandler";
 import { GetConsumptionError, GetConsumptionErrorBranch, GetConsumptionErrorFolder } from "../lib/types/ConsumptionErrors";
+import { TempParserFix } from "../lib/types/TempParserFix";
 
 const BranchInfo = {
     getName(branch: GitBranchInfo) {
@@ -73,7 +74,7 @@ function getRepoName(repo: Uri) {
 
 async function updateObjectDefinitions(uri: Uri, consumption: ConsumptionInfo) {
     const uris = await getWorkspaceFolderFiles(uri);
-    const objects = await getObjectDefinitions(uris, { fixFqn: true, updateDependencyCache: false });
+    const objects = await getObjectDefinitions(uris, <TempParserFix>{ shouldFixFullyQualifiedName: true, updateDependencyCache: false });
     return await updateActualConsumption(objects, consumption, false);
 }
 

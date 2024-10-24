@@ -6,6 +6,7 @@ import { ALRange } from "../lib/types/ALRange";
 import { existsSync, readFileSync } from "fs";
 import { ALObjectNamespace } from "../lib/types/ALObjectNamespace";
 import { findNamespaceAndIdInDependencyPackages } from "../lib/functions/findNamespaceAndIdInDependencyPackages";
+import { TempParserFix } from "../lib/types/TempParserFix";
 
 export interface NextIdContext {
     injectSemicolon: boolean;
@@ -27,7 +28,7 @@ export class ParserConnector implements Disposable {
         return this._initialization;
     }
 
-    public async parse(uris: Uri[], tempFixFQN: { fixFqn: boolean, updateDependencyCache: boolean }): Promise<ALObjectNamespace[]> {
+    public async parse(uris: Uri[], tempParserFix: TempParserFix): Promise<ALObjectNamespace[]> {
         output.log(`[AL Parser] Parsing ${uris.length} file(s)`);
         await this.initialization;
         const files = uris.map(uri => uri.fsPath)
@@ -39,13 +40,14 @@ export class ParserConnector implements Disposable {
                 output.log(`[AL Parser] Error parsing ${o.name} (${o.path}): ${(o as any).error}`, LogLevel.Info)
             );
 
-        if (tempFixFQN.fixFqn)
+        if (tempParserFix.shouldFixFullyQualifiedName) {
             for (const object of objects.filter(o => o.extends !== undefined)) {
-                const result = await this.getExtendInfos(object.type, object.path, undefined, tempFixFQN.updateDependencyCache);
+                const result = await this.getExtendInfos(object.type, object.path, undefined, tempParserFix.updateDependencyCache);
                 if (result) {
                     ({ extends: object.extends, extendsNamespace: object.extendsNamespace, extendsId: object.extendsId } = result);
                 }
             }
+        }
 
         return objects;
     }
