@@ -3,7 +3,7 @@ import { ParseError, parse } from "jsonc-parser";
 import * as xml2js from "xml2js";
 import { NavxManifest } from "./NavxManifest";
 import { SymbolReferenceNamespace, SymbolReferenceObject, SymbolReferenceRoot } from "./SymbolReferenceSchema";
-import JSZip = require("jszip");
+import * as JSZip from 'jszip';
 import { output } from "../../features/Output";
 import { stringify } from "comment-json";
 import { ALObjectType } from "@vjeko.com/al-parser-types-ninja";
@@ -55,21 +55,27 @@ export class ALAppPackage {
 
     public static async tryCreate(dependencyFileFullPath: string): Promise<ALAppPackage | undefined> {
         const data = readFileSync(dependencyFileFullPath);
-        const zip = await JSZip.loadAsync(data);
-        const manifest = await this.loadManifest(zip);
-        if (!manifest) {
-            return;
-        }
-        const symbolReferenceJson = zip.file("SymbolReference.json");
-        if (symbolReferenceJson) {
-            const content = await symbolReferenceJson.async("string");
-            let errors: ParseError[] = [];
-            const symbolReference = parse(content, errors, { allowEmptyContent: true, allowTrailingComma: true, disallowComments: false }) as SymbolReferenceRoot;
-            if (errors.length > 0) {
-                output.log(`Json parse of ${dependencyFileFullPath} successful, but with errors: ${errors.length}.`);
-                errors.forEach(error => output.log(stringify(error)));
+        try {
+            const zip = await JSZip.loadAsync(data);
+
+            const manifest = await this.loadManifest(zip);
+            if (!manifest) {
+                return;
             }
-            return new ALAppPackage(manifest, symbolReference, dependencyFileFullPath, statSync(dependencyFileFullPath).mtime);
+            const symbolReferenceJson = zip.file("SymbolReference.json");
+            if (symbolReferenceJson) {
+                const content = await symbolReferenceJson.async("string");
+                let errors: ParseError[] = [];
+                const symbolReference = parse(content, errors, { allowEmptyContent: true, allowTrailingComma: true, disallowComments: false }) as SymbolReferenceRoot;
+                if (errors.length > 0) {
+                    output.log(`Json parse of ${dependencyFileFullPath} successful, but with errors: ${errors.length}.`);
+                    errors.forEach(error => output.log(stringify(error)));
+                }
+                return new ALAppPackage(manifest, symbolReference, dependencyFileFullPath, statSync(dependencyFileFullPath).mtime);
+            }
+        } catch {
+            console.log(`dependencyFileFullPath failed: ${dependencyFileFullPath}`);
+            return undefined;
         }
     }
     private static async loadManifest(zip: JSZip): Promise<NavxManifest | undefined> {

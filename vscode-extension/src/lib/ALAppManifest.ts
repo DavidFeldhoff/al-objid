@@ -2,7 +2,7 @@ import * as fs from "fs";
 import { Uri } from "vscode";
 import { ALRange } from "./types/ALRange";
 import { NavxManifest } from "./types/NavxManifest";
-import JSZip = require("jszip");
+import * as JSZip from 'jszip';
 import * as xml2js from "xml2js";
 
 interface ALAppJson {
