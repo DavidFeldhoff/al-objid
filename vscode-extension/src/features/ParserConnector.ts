@@ -52,7 +52,7 @@ export class ParserConnector implements Disposable {
         return objects;
     }
 
-    public async getExtendInfos(extensionType: string, path: string, lines: string[] = readFileSync(path, 'utf8').split('\n'), updateDependencyCache: boolean = true): Promise<{ extends: string; extendsNamespace: string, extendsId: number } | undefined> {
+    public async getExtendInfos(extensionType: string, path: string, lines: string[] = readFileSync(path, 'utf8').split('\n'), updateDependencyCache: boolean = true): Promise<{ extends: string; extendsNamespace?: string, extendsId?: number } | undefined> {
         if (!["tableextension", "enumextension"].includes(extensionType.toLowerCase())) {
             return undefined;
         }
@@ -63,6 +63,8 @@ export class ParserConnector implements Disposable {
                 let namespaceAndId = await findNamespaceAndIdInDependencyPackages(Uri.file(path), lineNo, extensionType, match.groups!.objectname, updateDependencyCache);
                 if (namespaceAndId) {
                     return { extends: match.groups?.objectname, extendsNamespace: namespaceAndId.namespace, extendsId: namespaceAndId.id };
+                } else {
+                    return { extends: match.groups?.objectname, extendsNamespace: match.groups?.namespace || undefined, extendsId: undefined };
                 }
             }
         }
