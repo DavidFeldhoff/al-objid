@@ -64,7 +64,7 @@ export class ConsumptionWarnings {
             });
         }
         let idRanges: ALRange[] = app?.manifest.idRanges || [];
-        if (app.config.idRanges) {
+        if (app.config.idRanges && app.config.idRanges.length > 0) {
             idRanges = app.config.idRanges;
         }
 
@@ -103,7 +103,7 @@ export class ConsumptionWarnings {
             });
         }
         let idRanges: ALRange[] = app?.manifest.idRanges || [];
-        if (app.config.idRanges) {
+        if (app.config.idRanges && app.config.idRanges.length > 0) {
             idRanges = app.config.idRanges;
         }
 
