@@ -5,7 +5,11 @@ import { addAssignment, removeAssignment } from "./update";
 
 const storeAssignment = new ALNinjaRequestHandler<StoreAssignmentRequest, StoreAssignmentResponse>(async (request) => {
     const { appId, type, id, fieldId, redirectExtensions } = request.body;
-    const storageId = `${redirectExtensions ? type.replace("extension", "") : type}${fieldId ? `_${id}` : ""}`;
+    let storageId;
+    if (fieldId)
+        storageId = `${redirectExtensions ? type.replace("extension", "") : type}${fieldId ? `_${id}` : ""}`;
+    else
+        storageId = `${type}`;
     const idToStore = fieldId || id;
 
     let app: AppInfo, success: boolean = false;
