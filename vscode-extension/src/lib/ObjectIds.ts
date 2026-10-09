@@ -43,7 +43,7 @@ export async function updateActualConsumption(objects: ALObject[], consumption: 
             continue;
         }
 
-        let typeAndId = await getStorageIdOfALObject(object, updateDependencyCache);
+        let typeAndId = await getStorageIdOfALObject(object, updateDependencyCache, objects);
         if (!typeAndId) {
             errorEntries.push({
                 object: `${type}_${id}_${object.name}`,

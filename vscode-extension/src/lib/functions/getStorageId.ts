@@ -13,7 +13,7 @@ import { ALObjectNamespace } from "../types/ALObjectNamespace";
  * Save to use even with unsaved documents
  * @param alObject The ALObject to get the storage id for
  */
-export async function getStorageIdOfALObject(alObject: ALObject, updateDependencyCache: boolean): Promise<string | undefined> {
+export async function getStorageIdOfALObject(alObject: ALObject, updateDependencyCache: boolean, objects: ALObject[] = []): Promise<string | undefined> {
     if (!Config.instance.storeExtensionValuesOrIdsOnBaseObject || !["tableextension", "enumextension"].includes(alObject.type.toLowerCase())) {
         return `${alObject.type}_${alObject.id}`;
     }
@@ -31,7 +31,7 @@ export async function getStorageIdOfALObject(alObject: ALObject, updateDependenc
         object.extends = extendInfos?.extends;
         object.extendsNamespace = extendInfos?.extendsNamespace;
     }
-    return await getStorageId(object, updateDependencyCache);
+    return await getStorageId(object, updateDependencyCache, objects);
 }
 /**
  * Returns the storage Id for the ninja backend. 
@@ -55,9 +55,9 @@ export async function getStorageIdRAW(type: string, id: number, document: TextDo
         path: document!.uri!.fsPath
     }, true);
 }
-async function getStorageId(object: { type: string, id: number; extends: string | undefined; extendsNamespace?: string; path: string; }, updateDependencyCache: boolean): Promise<string | undefined> {
+async function getStorageId(object: { type: string, id: number; extends: string | undefined; extendsNamespace?: string; path: string; }, updateDependencyCache: boolean, objects: ALObject[] = []): Promise<string | undefined> {
     if (object.extends) {
-        const baseObjectId = await getExtendedId(object.type, object.extends, object.path, object.extendsNamespace || "", updateDependencyCache);
+        const baseObjectId = await getExtendedId(object.type, object.extends, object.path, object.extendsNamespace || "", updateDependencyCache, objects);
         if (baseObjectId) {
             return `${object.type.replace("extension", "")}_${baseObjectId}`;
         }
@@ -87,7 +87,7 @@ const baseObjectLookupTable: Record<string, number> = {};
  * @param baseObjectName The name of the base object
  * @param extensionfsPath the fspath of the extension document
  */
-async function getExtendedId(extensionObjectType: string, baseObjectName: string, extensionfsPath: string, baseObjectNamespace: string, updateDependencyCache: boolean): Promise<number | null> {
+async function getExtendedId(extensionObjectType: string, baseObjectName: string, extensionfsPath: string, baseObjectNamespace: string, updateDependencyCache: boolean, objects: ALObject[] = []): Promise<number | null> {
     extensionObjectType = extensionObjectType.toLowerCase();
     baseObjectName = baseObjectName.replace(/"/g, '');
 
@@ -102,7 +102,14 @@ async function getExtendedId(extensionObjectType: string, baseObjectName: string
         output.log(`[Get Extended Id] Error: Could not find app for ${extensionfsPath}. Available apps were ${WorkspaceManager.instance.alApps.map(app => app.uri.fsPath).join(', ')}`, LogLevel.Info);
         return null;
     }
+    const foundObject = objects.find(obj => obj.type === baseObjectType && obj.name.replace(/"/g, '') === baseObjectName);
+    if (foundObject) {
+        output.log(`[Get Extended Id] Found base object for ${baseObjectType} ${fullQualifiedObjectName} in ${foundObject.path} with id ${foundObject.id}`, LogLevel.Verbose);
+        baseObjectLookupTable[`${baseObjectType} ${fullQualifiedObjectName}`] = foundObject.id;
+        return foundObject.id;
+    }
     const dependencies = await app.getDependencies(updateDependencyCache);
+
     for (const dependencyPackage of dependencies) {
         const baseObject = findBaseObject(dependencyPackage.symbolReference, baseObjectType, baseObjectName, baseObjectNamespace);
         if (baseObject) {
