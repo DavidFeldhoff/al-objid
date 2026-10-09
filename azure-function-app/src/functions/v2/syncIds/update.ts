@@ -8,17 +8,22 @@ export async function updateConsumptions(appId: string, request: ALNinjaRequestC
             app = {} as AppInfo;
         }
 
-        request.log(app, patch ? "syncMerge" : "syncFull");
+        if (typeof app._forceMerge !== "boolean") {
+            app._forceMerge = true;
+        }
+        const merge = patch || app._forceMerge;
 
-        let { _authorization, _ranges, _log, _pool, ...consumptions } = app;
-        if (!patch) {
+        request.log(app, merge ? "syncMerge" : "syncFull");
+
+        let { _authorization, _ranges, _log, _pool, _forceMerge, ...consumptions } = app;
+        if (!merge) {
             consumptions = {} as ObjectConsumptions;
         }
         for (let key of Object.keys(objectIds)) {
             let existing = consumptions[key] || [];
-            consumptions[key] = [...new Set([...(patch ? existing : []), ...objectIds[key]])].sort((left, right) => left - right);
+            consumptions[key] = [...new Set([...(merge ? existing : []), ...objectIds[key]])].sort((left, right) => left - right);
         }
-        return { _authorization, _ranges, _log, _pool, ...consumptions };
+        return { _authorization, _ranges, _log, _pool, _forceMerge, ...consumptions };
     });
     return app;
 }

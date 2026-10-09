@@ -14,7 +14,8 @@ const autoSyncIds = new ALNinjaRequestHandler<AutoSyncIdsRequest, AutoSyncIdsRes
             throw new ErrorResponse(`Invalid credentials for app ${folder.appId}`, 401);
         }
         const updatedApp = await updateConsumptions(folder.appId, request, folder.ids, request.method === "PATCH");
-        result[folder.appId] = updatedApp;
+        const { _forceMerge, ...consumptions } = updatedApp;
+        result[folder.appId] = consumptions;
         request.markAsChanged(folder.appId, updatedApp);
     }
     return result;

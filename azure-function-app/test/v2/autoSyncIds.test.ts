@@ -74,7 +74,7 @@ describe("Testing function api/v2/autoSyncIds", () => {
         expect(app2.enum).toEqual([3]);
     });
 
-    it("Overwrites existing consumptions on POST against known apps", async () => {
+    it("Merges existing consumptions on POST against known apps by default", async () => {
         const storage = new StubStorage().app("first")
             .setConsumption(ALObjectType.codeunit, [2, 3, 4])
             .setConsumption(ALObjectType.table, [1, 2])
@@ -89,9 +89,10 @@ describe("Testing function api/v2/autoSyncIds", () => {
 
         const app1 = storage.content[`first.json`];
         expect(app1).toBeDefined();
-        expect(app1.codeunit).toEqual([1, 3, 5]);
-        expect(app1.table).toBeUndefined();
-        expect(app1.page).toEqual([2, 4, 6]);
+        expect(app1._forceMerge).toBe(true);
+        expect(app1.codeunit).toEqual([1, 2, 3, 4, 5]);
+        expect(app1.table).toEqual([1, 2]);
+        expect(app1.page).toEqual([2, 3, 4, 5, 6]);
         expect(app1.report).toEqual([3]);
 
         const app2 = storage.content[`second.json`];
@@ -100,6 +101,44 @@ describe("Testing function api/v2/autoSyncIds", () => {
         expect(app2.codeunit).toBeUndefined();
         expect(app2.xmlport).toEqual([2, 4, 6]);
         expect(app2.enum).toEqual([3]);
+        expect(context.res.body.first._forceMerge).toBeUndefined();
+        expect(context.res.body._appInfo._forceMerge).toBeUndefined();
+    });
+
+    it("Replaces existing consumptions on POST when forced-merge is explicitly disabled", async () => {
+        const storage = new StubStorage().app("first")
+            .setConsumption(ALObjectType.codeunit, [2, 3, 4])
+            .setConsumption(ALObjectType.table, [1, 2])
+            .setConsumption(ALObjectType.page, [3, 4, 5]);
+        storage.appInfo._forceMerge = false;
+        Mock.useStorage(storage.content);
+
+        const context = new Mock.Context(new Mock.Request("POST", { appFolders: [appFolders[0]] }));
+        await autoSyncIds(context, context.req);
+        expect(context.res).toBeStatus(200);
+
+        const app = storage.content["first.json"];
+        expect(app._forceMerge).toBe(false);
+        expect(app.codeunit).toEqual([1, 3, 5]);
+        expect(app.table).toBeUndefined();
+        expect(app.page).toEqual([2, 4, 6]);
+        expect(context.res.body.first._forceMerge).toBeUndefined();
+        expect(context.res.body._appInfo._forceMerge).toBeUndefined();
+    });
+
+    it("Always merges PATCH even when forced-merge is explicitly disabled", async () => {
+        const storage = new StubStorage().app("first")
+            .setConsumption(ALObjectType.codeunit, [2, 3, 4]);
+        storage.appInfo._forceMerge = false;
+        Mock.useStorage(storage.content);
+
+        const context = new Mock.Context(new Mock.Request("PATCH", { appFolders: [appFolders[0]] }));
+        await autoSyncIds(context, context.req);
+        expect(context.res).toBeStatus(200);
+
+        const app = storage.content["first.json"];
+        expect(app._forceMerge).toBe(false);
+        expect(app.codeunit).toEqual([1, 2, 3, 4, 5]);
     });
 
     it("Merges new consumptions on PATCH against known apps", async () => {
@@ -143,7 +182,7 @@ describe("Testing function api/v2/autoSyncIds", () => {
         expect(context.res).toBeStatus(401);
     });
 
-    it("Successfully performs update with authorized POST against an authorized app", async () => {
+    it("Successfully performs merge with authorized POST against an authorized app", async () => {
         const storage = new StubStorage().app("first")
             .setConsumption(ALObjectType.codeunit, [2, 3, 4])
             .setConsumption(ALObjectType.table, [1, 2])
@@ -160,9 +199,10 @@ describe("Testing function api/v2/autoSyncIds", () => {
 
         const app1 = storage.content[`first.json`];
         expect(app1).toBeDefined();
-        expect(app1.codeunit).toEqual([1, 3, 5]);
-        expect(app1.table).toBeUndefined();
-        expect(app1.page).toEqual([2, 4, 6]);
+        expect(app1._forceMerge).toBe(true);
+        expect(app1.codeunit).toEqual([1, 2, 3, 4, 5]);
+        expect(app1.table).toEqual([1, 2]);
+        expect(app1.page).toEqual([2, 3, 4, 5, 6]);
         expect(app1.report).toEqual([3]);
 
         const app2 = storage.content[`second.json`];

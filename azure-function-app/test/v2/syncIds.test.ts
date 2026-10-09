@@ -39,7 +39,7 @@ describe("Testing function api/v2/syncIds", () => {
         expect(storage.objectIds(storage.toALObjectType("enumextension_3"))).toEqual([8, 9]);
 
         expect(storage.log().length).toBe(1);
-        expect(storage.log()[0].eventType).toBe("syncFull");
+        expect(storage.log()[0].eventType).toBe("syncMerge");
         expect(storage.log()[0].user).toBe("fake");
 
         expect(context.bindings.notify).toBeDefined();
@@ -72,7 +72,7 @@ describe("Testing function api/v2/syncIds", () => {
         expect(context.bindings.notify.appId).toBe("_mock_");
     });
 
-    it("Overwrites existing consumptions on POST against a known app", async () => {
+    it("Merges existing consumptions on POST against a known app by default", async () => {
         const storage = new StubStorage().app()
             .setConsumption(ALObjectType.codeunit, [2, 3, 4])
             .setConsumption(ALObjectType.table, [1, 2])
@@ -86,17 +86,20 @@ describe("Testing function api/v2/syncIds", () => {
         expect(storage).not.toBeAuthorized();
 
         expect(storage.log().length).toBe(1);
-        expect(storage.log()[0].eventType).toBe("syncFull");
+        expect(storage.log()[0].eventType).toBe("syncMerge");
         expect(storage.log()[0].user).toBe("fake");
 
         const app = storage.content[`${storage.appId}.json`];
         expect(app).toBeDefined();
-        expect(app.codeunit).toEqual([1, 3, 5]);
-        expect(app.table).toBeUndefined();
-        expect(app.page).toEqual([2, 4, 6]);
+        expect(app._forceMerge).toBe(true);
+        expect(app.codeunit).toEqual([1, 2, 3, 4, 5]);
+        expect(app.table).toEqual([1, 2]);
+        expect(app.page).toEqual([2, 3, 4, 5, 6]);
         expect(app.report).toEqual([3]);
         expect(app.table_2).toEqual([7, 8]);
         expect(app.enumextension_3).toEqual([8, 9]);
+        expect(context.res.body._forceMerge).toBeUndefined();
+        expect(context.res.body._appInfo._forceMerge).toBeUndefined();
 
         expect(context.bindings.notify).toBeDefined();
         expect(context.bindings.notify.appId).toBe(storage.appId);
@@ -130,5 +133,43 @@ describe("Testing function api/v2/syncIds", () => {
 
         expect(context.bindings.notify).toBeDefined();
         expect(context.bindings.notify.appId).toBe(storage.appId);
+    });
+
+    it("Replaces existing consumptions on POST when forced-merge is explicitly disabled", async () => {
+        const storage = new StubStorage().app()
+            .setConsumption(ALObjectType.codeunit, [2, 3, 4])
+            .setConsumption(ALObjectType.table, [1, 2])
+            .setConsumption(ALObjectType.page, [3, 4, 5]);
+        storage.appInfo._forceMerge = false;
+        Mock.useStorage(storage.content);
+
+        const context = new Mock.Context(new Mock.Request("POST", { appId: storage.appId, ids, user: "fake" }));
+        await syncIds(context, context.req);
+        expect(context.res).toBeStatus(200);
+
+        const app = storage.content[`${storage.appId}.json`];
+        expect(app._forceMerge).toBe(false);
+        expect(app.codeunit).toEqual([1, 3, 5]);
+        expect(app.table).toBeUndefined();
+        expect(app.page).toEqual([2, 4, 6]);
+        expect(storage.log()[0].eventType).toBe("syncFull");
+        expect(context.res.body._forceMerge).toBeUndefined();
+        expect(context.res.body._appInfo._forceMerge).toBeUndefined();
+    });
+
+    it("Always merges PATCH even when forced-merge is explicitly disabled", async () => {
+        const storage = new StubStorage().app()
+            .setConsumption(ALObjectType.codeunit, [2, 3, 4]);
+        storage.appInfo._forceMerge = false;
+        Mock.useStorage(storage.content);
+
+        const context = new Mock.Context(new Mock.Request("PATCH", { appId: storage.appId, ids, user: "fake" }));
+        await syncIds(context, context.req);
+        expect(context.res).toBeStatus(200);
+
+        const app = storage.content[`${storage.appId}.json`];
+        expect(app._forceMerge).toBe(false);
+        expect(app.codeunit).toEqual([1, 2, 3, 4, 5]);
+        expect(storage.log()[0].eventType).toBe("syncMerge");
     });
 });

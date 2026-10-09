@@ -7,7 +7,7 @@ const syncIds = new ALNinjaRequestHandler<ObjectConsumptionRequest, ObjectConsum
     const { appId, ids } = request.body;
     const merge = request.method === "PATCH";
     const result = await updateConsumptions(appId, request, ids, merge);
-    const { _authorization, _ranges, ...consumptions } = result;
+    const { _authorization, _ranges, _forceMerge, ...consumptions } = result;
     request.markAsChanged(appId, result);
     return consumptions;
 });

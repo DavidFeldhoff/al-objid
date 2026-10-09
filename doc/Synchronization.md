@@ -74,6 +74,12 @@ Typical use cases for replace synchronization:
 - Initial synchronization
 - Releasing possible unused object IDs after larger refactoring or longer development cycles
 
+### Backend merge protection
+
+To protect app and simple-pool reservations from an incomplete scan, the back end enables merge protection by default when an app or pool is synchronized. With this protection enabled, a manual `Replace` request, automatic synchronization, and synchronization from the no-more-numbers prompt all merge IDs rather than removing IDs already recorded by the back end. The `Replace` choice therefore does not free IDs while merge protection is enabled.
+
+The setting is stored on the back-end app or pool record as `_forceMerge`. If it is missing, the back end sets it to `true` on the next sync. Only set it to `false` when a full replacement is explicitly intended; for a simple pool, change the shared pool record, not an individual member's app record.
+
 ## How can object IDs get out of sync?
 
 There are several ways how object ID assignment can get out of sync.

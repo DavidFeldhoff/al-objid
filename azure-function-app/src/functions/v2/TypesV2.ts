@@ -36,6 +36,7 @@ export type AppInfo = {
     _authorization: Authorization;
     _ranges: Range[];
     _log: LogEntry[];
+    _forceMerge?: boolean;
     _pool: {
         joinLock: string;
         info: string;

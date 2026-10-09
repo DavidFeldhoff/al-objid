@@ -10,7 +10,7 @@ const getConsumption = new ALNinjaRequestHandler<DefaultRequest, GetConsumptionR
         throw new ErrorResponse("App not found", 404);
     }
     
-    const { _authorization, _ranges, ...response } = app as any;
+    const { _authorization, _ranges, _forceMerge, ...response } = app as any;
     response._total = 0;
     for (let type of Object.values(ALObjectType)) {
         if (response[type]) {

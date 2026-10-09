@@ -19,6 +19,7 @@ describe("Testing function api/v2/getConsumption", () => {
         storage.setConsumption(ALObjectType.codeunit, [1, 2, 3]);
         storage.setConsumption(ALObjectType.page, [4, 5, 6]);
         storage.setConsumption(storage.toALObjectType("table_2"), [7, 8]);
+        storage.appInfo._forceMerge = true;
         Mock.useStorage(storage.content);
         const context = new Mock.Context(new Mock.Request("GET", { appId: storage.appId, authKey: storage.authKey }));
         await getConsumption(context, context.req);

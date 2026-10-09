@@ -98,7 +98,7 @@ export class ALNinjaRequestHandler<TRequest, TResponse, TBindings = DefaultBindi
             const response = await handler(request as any);
 
             if (appUpdated) {
-                const { _authorization, _ranges, ...appInfo } = appUpdated;
+                const { _authorization, _ranges, _forceMerge, ...appInfo } = appUpdated;
                 (response as any)._appInfo = appInfo;
             }
             return response;
