@@ -33,7 +33,7 @@ export async function updateConsumption(appId: string, request: ALNinjaRequestCo
         if (!consumption || !consumption.length) {
             context.updated = true;
             app[storageId] = [context.id];
-            request.log(app, "getNext", { type: storageId, id: context.id });
+            request.log(app, "getNext", { type, storageId, id: context.id });
             return { ...app };
         }
 

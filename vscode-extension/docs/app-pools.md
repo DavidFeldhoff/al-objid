@@ -90,6 +90,25 @@ When you need to synchronize application pool consumption, possible approaches a
     from that app.
 -   Run replace synchronization from one app, then run update synchronization from all other apps.
 
+## Application Pools and event logging
+
+Successful ID reservations, assignment changes, synchronization, and authorization changes
+can be logged in the `_log` array of the shared pool consumption blob. The extension keeps
+the originating app hash separate from the pool ID so requests, including auto-sync folders,
+can be attributed to the app that submitted them.
+
+Event usernames are now stored in **plaintext** for both pooled and ordinary apps. The
+username is always sent for event logging, independently of the app publisher. The former
+`objectIdNinja.includeUserName` setting has been removed and saved values are ignored.
+Notification reception is disabled by default; users can opt in with
+`objectIdNinja.showEventLogNotifications` without changing logging behavior.
+Usernames are client-reported labels, not verified identities.
+
+History is limited to seven days and the newest 10,000 entries per pool, with pruning on
+subsequent logging calls. This does not log every request, failures, or membership edits.
+See [event logging](event-logging.md) for entry fields, privacy, storage access, and legacy
+compatibility. Update the back end before rolling out the updated extension.
+
 ## Why is this feature marked as _"Preview"_?
 
 The app pools feature in its current incarnation is kind of a peer-to-peer feature. It works entirely in

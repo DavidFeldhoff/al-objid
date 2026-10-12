@@ -174,7 +174,7 @@ describe("Testing function api/v2/getNext", () => {
 
         expect(storage.log().length).toBe(1);
         expect(storage.log()[0].eventType).toBe("getNext");
-        expect(storage.log()[0].data).toEqual({ type: "codeunit", id: 50000 });
+        expect(storage.log()[0].data).toEqual({ type: "codeunit", storageId: "codeunit", id: 50000 });
         expect(storage.log()[0].user).toBe("fake");
 
         expect(context.bindings.notify).toBeDefined();
@@ -204,7 +204,7 @@ describe("Testing function api/v2/getNext", () => {
 
         expect(storage.log().length).toBe(1);
         expect(storage.log()[0].eventType).toBe("getNext");
-        expect(storage.log()[0].data).toEqual({ type: "codeunit", id: 50000 });
+        expect(storage.log()[0].data).toEqual({ type: "codeunit", storageId: "codeunit", id: 50000 });
         expect(storage.log()[0].user).toBe("fake");
 
         expect(context.bindings.notify).toBeDefined();

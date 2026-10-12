@@ -20,10 +20,15 @@ export type ObjectConsumptions = {
     [key in ALObjectType]: number[];
 }
 
-export interface LogEntry {
+export interface AuditMetadata {
+    user?: string;
+    userEncoding?: "plain" | "encrypted";
+    sourceAppId?: string;
+}
+
+export interface LogEntry extends AuditMetadata {
     eventType: string;
     timestamp: number;
-    user: string;
     data: any;
 }
 
@@ -67,6 +72,6 @@ export interface DefaultRequest { };
 export type ChangeOperation = "getNext" | "syncMerge" | "syncFull" | "authorize" | "deauthorize" | "addAssignment" | "removeAssignment";
 
 export interface ALNinjaRequestContext<TRequest = any, TBindings = any> extends RequestContext<TRequest, TBindings> {
-    log(app: AppInfo, operation: ChangeOperation, content?: any): void;
+    log(app: AppInfo, operation: ChangeOperation, content?: any, actor?: AuditMetadata): void;
     markAsChanged(appId: string, app: AppInfo, authorization?: Authorization): void;
 }

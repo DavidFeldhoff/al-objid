@@ -25,6 +25,7 @@ import { PropertyBag } from "../types/PropertyBag";
 import openExternal from "../functions/openExternal";
 import { isProtectedPublisher } from "../functions/isProtectedPublisher";
 import { ConsumptionCache } from "../../features/ConsumptionCache";
+import { getAuditMetadata } from "./AuditMetadata";
 
 (async () => {
     if (Config.instance.isBackEndConfigInError) {
@@ -134,7 +135,7 @@ export class Backend {
             ranges,
             authKey: app.config.authKey,
             ...additionalOptions,
-        });
+        }, undefined, HttpEndpoints.default, app.hash);
         if (response.status === API_RESULT.SUCCESS) {
             output.log(`Received next ${type} ID response: ${JSON.stringify(response.value)}`);
             if (commit && !!response.value?._appInfo) {
@@ -161,7 +162,7 @@ export class Backend {
             fieldId,
             authKey: app.config.authKey,
             ...additionalOptions
-        });
+        }, undefined, HttpEndpoints.default, app.hash);
         if (!!response.value?.updated && !!response.value?._appInfo) {
             ConsumptionCache.instance.updateConsumption(appId, response.value._appInfo);
         }
@@ -185,7 +186,7 @@ export class Backend {
             fieldId,
             authKey: app.config.authKey,
             ...additionalOptions
-        });
+        }, undefined, HttpEndpoints.default, app.hash);
         if (!!response.value?.updated && !!response.value?._appInfo) {
             ConsumptionCache.instance.updateConsumption(appId, response.value._appInfo);
         }
@@ -201,7 +202,7 @@ export class Backend {
             appId,
             ids,
             authKey: app.authKey,
-        });
+        }, undefined, HttpEndpoints.default, app.hash);
         return !!response.value;
     }
 
@@ -210,6 +211,11 @@ export class Backend {
 
         for (let app of consumptions) {
             this.rememberManagedApp(app.appId);
+            const sourceApp = WorkspaceManager.instance.getALAppFromHash(app.appId);
+            delete app.user;
+            delete app.userEncoding;
+            delete app.sourceAppId;
+            Object.assign(app, getAuditMetadata(sourceApp, Config.instance.userName));
             app.appId = WorkspaceManager.instance.getPoolIdFromAppIdIfAvailable(app.appId);
         }
         const response = await sendRequest<ConsumptionInfo>("/api/v2/autoSyncIds", patch ? "PATCH" : "POST", {
@@ -229,7 +235,7 @@ export class Backend {
 
         const alApp = WorkspaceManager.instance.getALAppFromHash(app.hash);
 
-        if (Config.instance.includeUserName && alApp && !isProtectedPublisher(alApp?.manifest.publisher)) {
+        if (alApp && !isProtectedPublisher(alApp.manifest.publisher)) {
             additional.gitUser = app.encrypt(gitUser);
             additional.gitEMail = app.encrypt(gitEMail);
         }
@@ -243,7 +249,9 @@ export class Backend {
                 appId,
                 ...additional,
             },
-            errorHandler
+            errorHandler,
+            HttpEndpoints.default,
+            app.hash
         );
         return response.value;
     }
@@ -262,7 +270,7 @@ export class Backend {
         const response = await sendRequest<AuthorizedAppResponse>("/api/v2/authorizeApp", "GET", {
             appId,
             authKey,
-        });
+        }, undefined, HttpEndpoints.default, app.hash);
         const result = response.value;
         if (result && result.user) {
             result.user.name = app.decrypt(result.user.name) || "";
@@ -280,7 +288,9 @@ export class Backend {
             "/api/v2/authorizeApp",
             "DELETE",
             { appId, authKey: app.authKey },
-            errorHandler
+            errorHandler,
+            HttpEndpoints.default,
+            app.hash
         );
         return typeof response.value === "object" && response.value.deleted;
     }
@@ -339,14 +349,15 @@ export class Backend {
         const response = await sendRequest<ConsumptionInfoWithTotal>("/api/v2/getConsumption", "GET", {
             appId,
             authKey: app.authKey,
-        });
+        }, undefined, HttpEndpoints.default, app.hash);
         return response.value;
     }
 
     private static async checkApp(appId: string): Promise<boolean> {
+        const sourceAppId = appId;
         appId = WorkspaceManager.instance.getPoolIdFromAppIdIfAvailable(appId);
 
-        const response = await sendRequest<boolean>("/api/v2/checkApp", "GET", { appId });
+        const response = await sendRequest<boolean>("/api/v2/checkApp", "GET", { appId }, undefined, HttpEndpoints.default, sourceAppId);
         return response.value ?? false;
     }
 

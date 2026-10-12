@@ -14,7 +14,7 @@ import { HttpErrorHandler } from "./HttpErrorHandler";
 import { HttpEndpoints } from "./HttpEndpoints";
 import { preprocessHttpStatusError } from "./preprocessHttpStatusError";
 import { handleHttpErrorDefault } from "./handleHttpErrorDefault";
-import { isProtectedPublisher } from "../functions/isProtectedPublisher";
+import { getAuditMetadata } from "./AuditMetadata";
 
 /**
  * Sends a request to the back-end API.
@@ -23,6 +23,7 @@ import { isProtectedPublisher } from "../functions/isProtectedPublisher";
  * @param method HTTP method
  * @param data Data to send to the back-end endpoint
  * @param errorHandler Error handler to execute in case of unsuccessful request
+ * @param sourceAppId Original app hash, before any pool ID substitution
  * @template T Type of response object expected from the back end
  * @returns `HttpResponse` object that contains full information about response, error, and error handling status
  */
@@ -31,7 +32,8 @@ export async function sendRequest<T>(
     method: HttpMethod,
     data: any = {},
     errorHandler?: HttpErrorHandler<T>,
-    endpoint: HttpEndpoint = HttpEndpoints.default
+    endpoint: HttpEndpoint = HttpEndpoints.default,
+    sourceAppId?: string
 ): Promise<HttpResponse<T>> {
     const { hostname, key } = endpoint;
     const headers: any = {
@@ -62,11 +64,13 @@ export async function sendRequest<T>(
         status: API_RESULT.NOT_SENT,
     };
 
-    if (Config.instance.includeUserName && data && typeof data === "object" && !Array.isArray(data) && data.appId) {
-        const app = WorkspaceManager.instance.getALAppFromHash(data.appId);
-        if (app && !isProtectedPublisher(app?.manifest.publisher)) {
-            data.user = app.encrypt(Config.instance.userName);
-        }
+    const app = WorkspaceManager.instance.getALAppFromHash(sourceAppId || data?.appId);
+    if (data && typeof data === "object" && !Array.isArray(data) && data.appId) {
+        // Always attribute backend changes, independently of notification preferences.
+        delete data.user;
+        delete data.userEncoding;
+        delete data.sourceAppId;
+        Object.assign(data, getAuditMetadata(app, Config.instance.userName));
     }
 
     return await executeWithStopwatchAsync(async () => {
@@ -78,9 +82,8 @@ export async function sendRequest<T>(
             if (appInfo) {
                 const { appId } = data;
                 const { _log, ...consumptions } = appInfo;
-                const app = WorkspaceManager.instance.getALAppFromHash(appId);
-                if (app) {
-                    NotificationsFromLog.instance.updateLog(appId, _log as EventLogEntry[], app.manifest.name);
+                if (app && appId) {
+                    NotificationsFromLog.instance.updateLog(appId, _log as EventLogEntry[], app.manifest.name, app.hash);
                     ConsumptionCache.instance.updateConsumption(appId, consumptions);
                 }
             }

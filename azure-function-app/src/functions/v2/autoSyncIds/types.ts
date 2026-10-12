@@ -1,6 +1,6 @@
-import { ObjectConsumptions } from "../TypesV2";
+import { AuditMetadata, ObjectConsumptions } from "../TypesV2";
 
-export interface AppConsumption {
+export interface AppConsumption extends AuditMetadata {
     appId: string;
     authKey?: string;
     ids: ObjectConsumptions;

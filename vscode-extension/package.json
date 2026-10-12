@@ -3,7 +3,7 @@
     "displayName": "AL Object ID Ninja",
     "description": "Manage object IDs in multi-user environments with mind-boggling simplicity.",
     "publisher": "vjeko",
-    "version": "2.12.5-david",
+    "version": "2.12.7-david",
     "preview": true,
     "repository": {
         "type": "git",
@@ -192,17 +192,12 @@
                 },
                 "objectIdNinja.showEventLogNotifications": {
                     "type": "boolean",
-                    "default": true,
-                    "description": "Show notifications when other developers create objects in the app you are working on."
+                    "default": false,
+                    "description": "Receive notifications when other developers create objects in the app you are working on. Disabled by default."
                 },
                 "objectIdNinja.overrideUserName": {
                     "type": "string",
                     "description": "Name to be shown in notification messages. If you leave this empty, Object ID Ninja will use your OS user name (or your Git user name in future versions)."
-                },
-                "objectIdNinja.includeUserName": {
-                    "type": "boolean",
-                    "default": true,
-                    "description": "If you don't want your user name to be sent to the back end, you can switch this option off. When you do, other developers on your team won't see notifications about object ID assignments done by you."
                 },
                 "objectIdNinja.useVerboseOutputLogging": {
                     "type": "boolean",

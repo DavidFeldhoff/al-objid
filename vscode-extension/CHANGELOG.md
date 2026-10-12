@@ -7,6 +7,45 @@ The log is kept in [Keep a Changelog](http://keepachangelog.com/) format. This p
 
 ## [Unreleased]
 
+## [2.12.7]
+
+### Fixed
+
+-   Simple-pool requests now retain the originating app context when sending actor metadata.
+    Previously, looking up the pool ID as a local app hash omitted the username and prevented
+    the back end from appending `_log` entries.
+-   Automatic synchronization now supplies actor metadata per folder, including ordinary apps
+    and multiple apps sharing a simple pool.
+-   Event notifications handle plaintext usernames and legacy encrypted entries without
+    modifying the stored log entries.
+
+### Changed
+
+-   Event usernames are now sent and stored in plaintext for all app logs, with an explicit
+    encoding marker and the originating app hash when available. Event usernames are always
+    sent, regardless of publisher. Authorization Git username/email encryption and the
+    protected-publisher exclusion remain unchanged.
+-   Receiving event notifications is now opt-in: `showEventLogNotifications` defaults to
+    `false`. Explicit user preferences remain respected, independently of backend logging.
+-   Back-end event retention increases from four hours to a seven-day rolling window capped
+    at 10,000 entries per app/pool. Pruning occurs on subsequent logging calls, and the count
+    cap can shorten the available history below seven days.
+-   Synchronization events include manual/automatic origin and submitted ID counts by object
+    type. The log covers successful changes and accepted syncs, not every request or failure.
+
+See [event logging](docs/event-logging.md) for privacy considerations, log access, and upgrade
+compatibility. Usernames are client-reported labels, not verified identities. Update the back end
+before the extension; older extensions cannot correctly display plaintext event usernames.
+
+### Removed
+
+-   Removed `objectIdNinja.includeUserName` from settings and runtime configuration. Existing
+    saved values are ignored and can be deleted. Event logging always sends the username;
+    encrypted authorization Git identity uses the previous default inclusion behavior for
+    eligible publishers. Use `showEventLogNotifications` to opt in to receiving notifications.
+
+### Planned
+
 Work is in progress on two upcoming features, both of which heavily depend on tree view refactoring done in 2.9.0:
 
 -   License Explorer: allows you to have better insight into licensed state of your objects. It allows to have

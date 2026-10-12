@@ -80,15 +80,11 @@ export class Config extends DisposableHolder {
     }
 
     public get showEventLogNotifications(): boolean {
-        return this.getWithDefault<boolean>("showEventLogNotifications", true);
+        return this.getWithDefault<boolean>("showEventLogNotifications", false);
     }
 
     public get userName(): string {
         return this._config.get<string>("overrideUserName") || User.username;
-    }
-
-    public get includeUserName(): boolean {
-        return this.getWithDefault<boolean>("includeUserName", true);
     }
 
     public get useVerboseOutputLogging(): boolean {

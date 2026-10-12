@@ -21,10 +21,11 @@ describe("Testing function api/v2/getConsumption", () => {
         storage.setConsumption(storage.toALObjectType("table_2"), [7, 8]);
         storage.appInfo._forceMerge = true;
         Mock.useStorage(storage.content);
+        const beforeRequest = JSON.stringify(storage.content);
         const context = new Mock.Context(new Mock.Request("GET", { appId: storage.appId, authKey: storage.authKey }));
         await getConsumption(context, context.req);
         expect(context.res).toBeStatus(200);
-        expect(storage).not.toHaveChanged();
+        expect(JSON.stringify(storage.content)).toBe(beforeRequest);
         expect(context.res.body).toEqual({
             _total: 6,
             codeunit: [1, 2, 3],

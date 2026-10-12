@@ -16,7 +16,7 @@ export class NotificationsFromLog {
 
     private _log: { [key: string]: number } = {};
 
-    public updateLog(appId: string, log: EventLogEntry[] = [], appName: string): boolean {
+    public updateLog(appId: string, log: EventLogEntry[] = [], appName: string, sourceAppId?: string): boolean {
         const lastTimestamp = this._log[appId];
         if (!lastTimestamp) {
             // On the first call, no notifications should be shown
@@ -40,13 +40,14 @@ export class NotificationsFromLog {
             }
 
             if (event.user) {
-                const app = WorkspaceManager.instance.getALAppFromHash(appId);
-                event.user = app?.decrypt(event.user) || "Unknown user";
-                if (event.user === Config.instance.userName) {
+                const app = WorkspaceManager.instance.getALAppFromHash(event.sourceAppId || sourceAppId || appId);
+                // Unmarked entries come from older clients and still contain ciphertext.
+                const user = event.userEncoding === "plain" ? event.user : app?.decrypt(event.user) || "Unknown user";
+                if (user === Config.instance.userName) {
                     continue;
                 }
 
-                UI.log.showMessage(event, appName);
+                UI.log.showMessage({ ...event, user }, appName);
                 updated = true;
             }
         }

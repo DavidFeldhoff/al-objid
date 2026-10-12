@@ -1,14 +1,14 @@
 import { ErrorResponse, RequestHandler } from "@vjeko.com/azure-func";
 import { injectValidators } from "./injectValidators";
-import { ALNinjaRequestContext, AppBindings, AppInfo, DefaultBindings } from "./TypesV2";
+import { ALNinjaRequestContext, AppBindings, AppInfo, AuditMetadata, DefaultBindings } from "./TypesV2";
 import { validatePoolSignature } from "./ValidatePoolSignature";
+import { appendAuditLog, validateAuditMetadata } from "./AuditLog";
 
 injectValidators();
 
-interface AppIdBody {
+interface AppIdBody extends AuditMetadata {
     appId: string;
     authKey?: string;
-    user: string;
 }
 
 interface PoolBody {
@@ -36,20 +36,9 @@ export class ALNinjaRequestHandler<TRequest, TResponse, TBindings = DefaultBindi
     public constructor(handler: ALNinjaHandlerFunc<TRequest, TResponse, TBindings>, withValidation: boolean = true) {
         super(async (request) => {
             const alNinjaRequest = (request as unknown as ALNinjaRequestContext<TRequest, TBindings>);
-            alNinjaRequest.log = (app, eventType, data) => {
-                const user = request.body && request.body.user;
-                const timestamp = Date.now();
-                const minTimestamp = timestamp - (4 * 60 * 60 * 1000); // Keep log entries for 4 hours
-                const log = (app._log || []).filter(entry => entry.timestamp > minTimestamp);
-                if (user) {
-                    log.push({
-                        timestamp,
-                        eventType,
-                        user: request.body.user,
-                        data
-                    });
-                }
-                app._log = log;
+            validateAuditMetadata(request.body);
+            alNinjaRequest.log = (app, eventType, data, actor) => {
+                appendAuditLog(app, eventType, data, actor === undefined ? request.body : actor);
             };
             let appUpdated: AppInfo | null = null;
             alNinjaRequest.markAsChanged = (appId, app, authorization) => {
