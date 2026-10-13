@@ -215,6 +215,7 @@ export class Backend {
             delete app.user;
             delete app.userEncoding;
             delete app.sourceAppId;
+            delete app.sourceAppManifestId;
             Object.assign(app, getAuditMetadata(sourceApp, Config.instance.userName));
             app.appId = WorkspaceManager.instance.getPoolIdFromAppIdIfAvailable(app.appId);
         }

@@ -70,6 +70,7 @@ export async function sendRequest<T>(
         delete data.user;
         delete data.userEncoding;
         delete data.sourceAppId;
+        delete data.sourceAppManifestId;
         Object.assign(data, getAuditMetadata(app, Config.instance.userName));
     }
 

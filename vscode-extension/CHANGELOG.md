@@ -7,6 +7,19 @@ The log is kept in [Keep a Changelog](http://keepachangelog.com/) format. This p
 
 ## [Unreleased]
 
+## [2.12.8-david]
+
+### Added
+
+-   Event logs now include optional `sourceAppManifestId`: the originating app's plaintext
+    manifest ID, including per-folder automatic synchronization and simple-pool requests.
+    Hashed storage identifiers and pool routing remain unchanged. Older Versions that omit it remain supported.
+
+### Fixed
+
+-   Successful mutation events are now logged even when the username is missing or empty,
+    using `Unknown user` with plaintext encoding and retaining supplied app attribution.
+
 ## [2.12.7]
 
 ### Fixed

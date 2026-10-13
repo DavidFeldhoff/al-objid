@@ -26,6 +26,10 @@ Each new event sent by the updated extension contains:
 - `userEncoding`: `plain` for usernames sent by the updated extension.
 - `sourceAppId`: the hash of the originating app, not the pool ID. This distinguishes
   members sharing the same consumption blob; it is not a human-readable app name.
+- `sourceAppManifestId`: the originating app's plaintext manifest `id` (normally a GUID),
+  not its hash or the pool ID. This optional field is sent by extension version
+  `2.12.8-david` and later when local app context is available. Older clients omit it;
+  existing log entries are not backfilled. Hashed storage identifiers remain unchanged.
 - `data`: operation-specific details. Assignment events contain ID/type information;
   synchronization events contain `origin` (`manual` or `auto`) and submitted ID counts
   grouped by object type. Counts are not the number of newly reserved or changed IDs and
@@ -41,7 +45,8 @@ included in the event data.
 `objectIdNinja.overrideUserName` controls the reported name; otherwise the extension uses
 the operating-system username. These labels are client-supplied and can be changed. They
 are **not verified authenticated identities**, and `sourceAppId` is attribution metadata,
-not an authorization credential.
+not an authorization credential. The plaintext `sourceAppManifestId` is also client-reported
+attribution metadata, not a verified identity or authorization credential.
 
 The updated extension always sends the event username, including for protected publishers
 and when local app context is unavailable. `objectIdNinja.includeUserName` has been removed;
@@ -49,6 +54,13 @@ existing saved values are ignored and can be deleted from your settings. Encrypt
 username/email is included in authorization information for eligible publishers, retaining
 the protected-publisher exclusion. Older clients or direct API callers can still omit
 actor metadata; the back end remains compatible with these requests.
+
+Missing or empty usernames do not suppress successful mutation events. The back end
+records these events with `user: "Unknown user"` and `userEncoding: "plain"`, retaining
+any supplied `sourceAppId` and `sourceAppManifestId`. Supplied nonempty usernames keep their
+original encoding.
+For auto-synchronization, this fallback is applied independently to each folder; missing
+folder metadata is not inherited from the overall request.
 
 This plaintext policy applies to event usernames for ordinary apps as well as simple pools.
 It does not change encryption of authorization Git usernames or email addresses. Anyone
