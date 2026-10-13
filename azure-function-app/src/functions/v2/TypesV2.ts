@@ -24,6 +24,7 @@ export interface AuditMetadata {
     user?: string;
     userEncoding?: "plain" | "encrypted";
     sourceAppId?: string;
+    sourceAppManifestId?: string;
 }
 
 export interface LogEntry extends AuditMetadata {
