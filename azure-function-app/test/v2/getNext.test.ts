@@ -215,15 +215,14 @@ describe("Testing function api/v2/getNext", () => {
         expect(context.res.body._appInfo.codeunit).toEqual([50000]);
     });
 
-    it("Logs an unknown user when committing next ID without previous consumption", async () => {
+    it("Rejects committing next ID without a user", async () => {
         const type = ALObjectType.codeunit;
         const storage = new StubStorage().app();
         Mock.useStorage(storage.content);
         const context = new Mock.Context(new Mock.Request("POST", { appId: storage.appId, ranges, type }));
         await getNext(context, context.req);
-        expect(context.res).toBeStatus(200);
-        expect(storage.log()).toHaveLength(1);
-        expect(storage.log()[0]).toMatchObject({ user: "Unknown user", userEncoding: "plain", eventType: "getNext" });
+        expect(context.res).toBeStatus(400);
+        expect(storage).not.toHaveChanged();
     });
 
     it("Succeeds committing next ID with previous consumption and stale log", async () => {
@@ -258,7 +257,7 @@ describe("Testing function api/v2/getNext", () => {
         expect(context.res.body._appInfo.codeunit).toEqual([50000, 50001, 50002, 50003, 50004]);
     });
 
-    it("Logs an unknown user and prunes stale history when committing next ID", async () => {
+    it("Rejects committing next ID without a user and leaves stale history unchanged", async () => {
         const consumption = [50000, 50001, 50002, 50004];
         const type = ALObjectType.codeunit;
         const storage = new StubStorage().app()
@@ -267,9 +266,9 @@ describe("Testing function api/v2/getNext", () => {
         Mock.useStorage(storage.content);
         const context = new Mock.Context(new Mock.Request("POST", { appId: storage.appId, ranges, type }));
         await getNext(context, context.req);
-        expect(context.res).toBeStatus(200);
+        expect(context.res).toBeStatus(400);
         expect(storage.log()).toHaveLength(1);
-        expect(storage.log()[0]).toMatchObject({ user: "Unknown user", userEncoding: "plain", eventType: "getNext" });
+        expect(storage.log()[0].user).toBe("mock");
     });
 
     it("Succeeds committing next ID with previous consumption and fresh log", async () => {
@@ -306,7 +305,7 @@ describe("Testing function api/v2/getNext", () => {
     });
 
 
-    it("Logs an unknown user and retains fresh history when committing next ID", async () => {
+    it("Rejects committing next ID without a user and leaves fresh history unchanged", async () => {
         const consumption = [50000, 50001, 50002, 50004];
         const log = [{ timestamp: Date.now(), eventType: "getNext", user: "mock", data: { type: "table", id: 50000 } }];
         const type = ALObjectType.codeunit;
@@ -316,10 +315,9 @@ describe("Testing function api/v2/getNext", () => {
         Mock.useStorage(storage.content);
         const context = new Mock.Context(new Mock.Request("POST", { appId: storage.appId, ranges, type }));
         await getNext(context, context.req);
-        expect(context.res).toBeStatus(200);
-        expect(storage.log()).toHaveLength(2);
+        expect(context.res).toBeStatus(400);
+        expect(storage.log()).toHaveLength(1);
         expect(storage.log()[0]).toEqual(log[0]);
-        expect(storage.log()[1]).toMatchObject({ user: "Unknown user", userEncoding: "plain", eventType: "getNext" });
     });
 
     it("Succeeds committing next field ID to third-party enum with previous consumption", async () => {
@@ -328,7 +326,7 @@ describe("Testing function api/v2/getNext", () => {
         const type = storage.toALObjectType("enum_18");
         storage.setConsumption(type, consumption);
         Mock.useStorage(storage.content);
-        const context = new Mock.Context(new Mock.Request("POST", { appId: storage.appId, ranges, type }));
+        const context = new Mock.Context(new Mock.Request("POST", { appId: storage.appId, ranges, type, user: "fake" }));
         await getNext(context, context.req);
         expect(context.res.body.id).toStrictEqual(50003);
         expect(context.res.body.available).toStrictEqual(true);
@@ -347,7 +345,7 @@ describe("Testing function api/v2/getNext", () => {
         storage.setConsumption(type, [1, 2, 4, 5, 50000, 50001, 50002, 50004]);
         storage.setConsumption(requestType, [1, 2, 4, 5, 50000, 50001, 50002, 50004]);
         Mock.useStorage(storage.content);
-        const context = new Mock.Context(new Mock.Request("POST", { appId: storage.appId, ranges, type: requestType }));
+        const context = new Mock.Context(new Mock.Request("POST", { appId: storage.appId, ranges, type: requestType, user: "fake" }));
         await getNext(context, context.req);
         expect(context.res.body.id).toStrictEqual(50003);
         expect(context.res.body.available).toStrictEqual(true);
@@ -367,7 +365,7 @@ describe("Testing function api/v2/getNext", () => {
         storage.setConsumption(type, [1, 2, 4, 5, 50000, 50001, 50002, 50004]);
         storage.setConsumption(requestType, [1, 2, 4, 5, 50000, 50001, 50002, 50004]);
         Mock.useStorage(storage.content);
-        const context = new Mock.Context(new Mock.Request("POST", { appId: storage.appId, ranges, type: requestType, redirectExtensions: true }));
+        const context = new Mock.Context(new Mock.Request("POST", { appId: storage.appId, ranges, type: requestType, redirectExtensions: true, user: "fake" }));
         await getNext(context, context.req);
         expect(context.res.body.id).toStrictEqual(50003);
         expect(context.res.body.available).toStrictEqual(true);
@@ -387,7 +385,7 @@ describe("Testing function api/v2/getNext", () => {
         storage.setConsumption(type, [1, 2, 4, 5, 50000, 50001, 50002, 50004]);
         storage.setConsumption(requestType, [1, 2, 4, 5, 50000, 50001, 50002, 50004]);
         Mock.useStorage(storage.content);
-        const context = new Mock.Context(new Mock.Request("POST", { appId: storage.appId, ranges, type: requestType }));
+        const context = new Mock.Context(new Mock.Request("POST", { appId: storage.appId, ranges, type: requestType, user: "fake" }));
         await getNext(context, context.req);
         expect(context.res.body.id).toStrictEqual(50003);
         expect(context.res.body.available).toStrictEqual(true);
@@ -407,7 +405,7 @@ describe("Testing function api/v2/getNext", () => {
         storage.setConsumption(type, [1, 2, 4, 5, 50000, 50001, 50002, 50004]);
         storage.setConsumption(requestType, [1, 2, 4, 5, 50000, 50001, 50002, 50004]);
         Mock.useStorage(storage.content);
-        const context = new Mock.Context(new Mock.Request("POST", { appId: storage.appId, ranges, type: requestType, redirectExtensions: true }));
+        const context = new Mock.Context(new Mock.Request("POST", { appId: storage.appId, ranges, type: requestType, redirectExtensions: true, user: "fake" }));
         await getNext(context, context.req);
         expect(context.res.body.id).toStrictEqual(50003);
         expect(context.res.body.available).toStrictEqual(true);

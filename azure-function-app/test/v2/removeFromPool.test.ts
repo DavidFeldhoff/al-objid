@@ -31,12 +31,12 @@ describe("Testing function api/v2/removeFromPool", () => {
 
     async function createMockPool(storage: StubStorage, initialApps: { appId: string, name: string }[] = []): Promise<CreatePoolResponse> {
         Mock.useStorage(storage.content);
-        const context = new Mock.Context(new Mock.Request("POST", { name, managementSecret, joinKey, apps: initialApps }));
+        const context = new Mock.Context(new Mock.Request("POST", { name, managementSecret, joinKey, apps: initialApps, user: "test-user" }));
         await createPool(context, context.req);
         return context.res.body as CreatePoolResponse;
     }
 
-    function signPayload(payload: {}, key: string): { _payload: string, _signature: string } {
+    function signPayload(payload: {}, key: string): { _payload: string, _signature: string, user: string } {
         const privateKey = createPrivateKey({ key: Buffer.from(key, "base64"), format: "der", passphrase: managementSecret, type: "pkcs8" });
         const _payload = JSON.stringify(payload);
         const sign = createSign("RSA-SHA256");
@@ -45,6 +45,7 @@ describe("Testing function api/v2/removeFromPool", () => {
         const _signature = sign.sign(privateKey, "base64");
         return {
             ...payload,
+            user: "test-user",
             _payload,
             _signature,
         };
@@ -86,7 +87,7 @@ describe("Testing function api/v2/removeFromPool", () => {
         const storage = new StubStorage();
         Mock.useStorage(storage.content);
 
-        const context = new Mock.Context(new Mock.Request("POST", { poolId: "_mock_", accessKey: "invalid", apps: leaveApps }));
+        const context = new Mock.Context(new Mock.Request("POST", { poolId: "_mock_", accessKey: "invalid", apps: leaveApps, user: "test-user" }));
         await removeFromPool(context, context.req);
         expect(context.res).toBeStatus(404);
     });

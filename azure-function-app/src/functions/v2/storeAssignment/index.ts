@@ -44,6 +44,7 @@ storeAssignment.validator.expect("body", {
 });
 storeAssignment.requirePoolSignature();
 storeAssignment.requireSourceAppIdMatch();
+storeAssignment.requireUser("POST", "DELETE");
 
 export const disableStoreAssignmentRateLimit = () => storeAssignment.noRateLimit();
 

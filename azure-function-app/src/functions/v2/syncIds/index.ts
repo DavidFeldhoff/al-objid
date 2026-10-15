@@ -11,6 +11,7 @@ const syncIds = new ALNinjaRequestHandler<ObjectConsumptionRequest, ObjectConsum
     request.markAsChanged(appId, result);
     return consumptions;
 });
+syncIds.requireUser("POST", "PATCH");
 syncIds.validator.expect("body", {
     ids: "ObjectIDs"
 });

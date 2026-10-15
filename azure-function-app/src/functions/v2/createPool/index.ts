@@ -83,6 +83,7 @@ const createPool = new ALNinjaRequestHandler<CreatePoolRequest, CreatePoolRespon
 }, false);
 
 createPool.skipAuthorization();
+createPool.requireUser("POST");
 createPool.validator.expect("body", {
     name: "string!",
     managementSecret: "string!",

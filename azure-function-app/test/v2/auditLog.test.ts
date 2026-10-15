@@ -28,7 +28,7 @@ const plain = { user: "Alice Example", userEncoding: "plain", sourceAppId: "audi
 const ranges = [{ from: 50000, to: 50001 }];
 const ids = { codeunit: [1, 1, 2], table_37: [3, 4], table_18: [5], enumextension_9: [] };
 const invalidActors = [
-    { user: 1 }, { user: null }, { user: [] }, { user: "x".repeat(257) },
+    { user: 1 }, { user: null }, { user: [] }, { user: " " }, { user: "x".repeat(257) },
     { userEncoding: "other" }, { userEncoding: null }, { userEncoding: 1 },
     { sourceAppId: 1 }, { sourceAppId: null }, { sourceAppId: {} },
     { sourceAppManifestId: 1 }, { sourceAppManifestId: null }, { sourceAppManifestId: {} }, { sourceAppManifestId: [] },
@@ -84,20 +84,14 @@ describe("Audit metadata and legacy compatibility", () => {
         { user: "", userEncoding: "encrypted", sourceAppId: "origin" },
         { userEncoding: "plain", sourceAppId: "" },
         { sourceAppManifestId: manifestId }, { user: "", sourceAppManifestId: "" },
-    ])("logs a plaintext fallback for missing or empty usernames: %j", async actor => {
+    ])("rejects sync mutations with missing or empty usernames: %j", async actor => {
         const storage = useApp();
         const body = { appId: storage.appId, ids, ...actor };
-        const original = JSON.stringify(body);
+        const before = JSON.stringify(storage.content);
         const context = await invoke(syncIds, "POST", body);
-        expect(context.res).toBeStatus(200);
-        expect(readApp(storage).codeunit).toEqual([1, 2]);
-        expect(readApp(storage)._log).toHaveLength(1);
-        expect(readApp(storage)._log[0]).toMatchObject({ user: "Unknown user", userEncoding: "plain", eventType: "syncMerge" });
-        if (actor.sourceAppId !== undefined) expect(readApp(storage)._log[0].sourceAppId).toBe(actor.sourceAppId);
-        else expect(readApp(storage)._log[0]).not.toHaveProperty("sourceAppId");
-        if (actor.sourceAppManifestId !== undefined) expect(readApp(storage)._log[0].sourceAppManifestId).toBe(actor.sourceAppManifestId);
-        else expect(readApp(storage)._log[0]).not.toHaveProperty("sourceAppManifestId");
-        expect(JSON.stringify(body)).toBe(original);
+        expect(context.res).toBeStatus(400);
+        expect(JSON.stringify(storage.content)).toBe(before);
+        expect(context.bindings.notify).toBeUndefined();
     });
 
     it("defaults to the body actor but honors an explicit actor with no user", async () => {
@@ -144,21 +138,19 @@ describe("Successful mutation events only", () => {
         ["removeAssignment", storeAssignment, "DELETE", { type: "codeunit", id: 50000 }],
         ["syncMerge", syncIds, "PATCH", { ids }],
         ["syncFull", syncIds, "POST", { ids }],
-    ])("logs an unknown actor for %s", async (eventType, handler, method, payload) => {
+    ])("rejects a %s mutation without a user", async (eventType, handler, method, payload) => {
         for (const actor of [{}, { user: "", userEncoding: "encrypted" }]) {
             const storage = useApp();
             if (eventType === "deauthorize") storage.authorize();
             if (eventType === "removeAssignment") storage.setConsumption(ALObjectType.codeunit, [50000]);
             if (eventType === "syncFull") storage.appInfo._forceMerge = false;
+            const before = JSON.stringify(storage.content);
             const context = await invoke(handler, method as string, {
                 appId: storage.appId, authKey: storage.authKey, ...payload as any, ...actor, sourceAppId: "origin", sourceAppManifestId: manifestId,
             });
-            expect(context.res).toBeStatus(200);
-            expect(readApp(storage)._log).toHaveLength(1);
-            expect(readApp(storage)._log[0]).toMatchObject({
-                user: "Unknown user", userEncoding: "plain", sourceAppId: "origin", sourceAppManifestId: manifestId, eventType,
-            });
-            expect(context.bindings.notify.appId).toBe(storage.appId);
+            expect(context.res).toBeStatus(400);
+            expect(JSON.stringify(storage.content)).toBe(before);
+            expect(context.bindings.notify).toBeUndefined();
         }
     });
 
@@ -254,7 +246,7 @@ describe("Bounded sync events and folder actors", () => {
         expect(readApp(storage)._log[0].data).toEqual({ origin: "manual", counts: { codeunit: 3, table: 3, enumextension: 0 } });
     });
 
-    it.each(["same-pool", "different-pools"])("uses folder actors without inheritance in %s batches", async mode => {
+    it.each(["same-pool", "different-pools"])("uses folder overrides and root fallback in %s batches", async mode => {
         const storage = new StubStorage().app("pool-one").app("pool-two");
         for (const appId of ["pool-one", "pool-two"]) {
             readApp(storage, appId)._pool = { appIds: ["source-one", "source-two"] } as AppInfo["_pool"];
@@ -275,13 +267,13 @@ describe("Bounded sync events and folder actors", () => {
         expect(logs).toHaveLength(3);
         expect(logs[0]).toMatchObject({ user: "folder-one", userEncoding: "plain", sourceAppId: "source-one", sourceAppManifestId: "22222222-2222-2222-2222-222222222222" });
         expect(logs[1]).toMatchObject({ user: "folder-two", userEncoding: "encrypted", sourceAppId: "source-two", sourceAppManifestId: "33333333-3333-3333-3333-333333333333" });
-        expect(logs[2]).toMatchObject({ user: "Unknown user", userEncoding: "plain", sourceAppId: "unknown-origin", sourceAppManifestId: "44444444-4444-4444-4444-444444444444" });
+        expect(logs[2]).toMatchObject({ user: "Alice Example", userEncoding: "plain", sourceAppId: "unknown-origin", sourceAppManifestId: "44444444-4444-4444-4444-444444444444" });
         logs.forEach(entry => expect(entry.data).toEqual({ origin: "auto", counts: { codeunit: 1 } }));
         expect(readApp(storage, secondPool).codeunit).toContain(3);
         expect(JSON.stringify(body)).toBe(beforeBody);
     });
 
-    it("retains unmarked legacy folder encoding and allows missing users in different apps", async () => {
+    it("retains unmarked folder encoding and inherits the root user for other folders", async () => {
         const storage = new StubStorage();
         Mock.useStorage(storage.content);
         const context = await invoke(autoSyncIds, "POST", { ...plain, appFolders: [
@@ -294,9 +286,22 @@ describe("Bounded sync events and folder actors", () => {
         expect(readApp(storage, "one")._log[0]).not.toHaveProperty("sourceAppId");
         expect(readApp(storage, "one")._log[0]).not.toHaveProperty("sourceAppManifestId");
         expect(readApp(storage, "two")._log).toHaveLength(1);
-        expect(readApp(storage, "two")._log[0]).toMatchObject({ user: "Unknown user", userEncoding: "plain" });
+        expect(readApp(storage, "two")._log[0]).toMatchObject({ user: "Alice Example", userEncoding: "plain" });
         expect(readApp(storage, "two")._log[0]).not.toHaveProperty("sourceAppId");
         expect(readApp(storage, "two")._log[0]).not.toHaveProperty("sourceAppManifestId");
+    });
+
+    it("rejects an auto-sync batch with no root or folder user before any writes", async () => {
+        const storage = new StubStorage().app("one").app("two");
+        Mock.useStorage(storage.content);
+        const before = JSON.stringify(storage.content);
+        const context = await invoke(autoSyncIds, "POST", { appFolders: [
+            { appId: "one", ids },
+            { appId: "two", ids },
+        ] });
+        expect(context.res).toBeStatus(400);
+        expect(JSON.stringify(storage.content)).toBe(before);
+        expect(context.bindings.notify).toBeUndefined();
     });
 
     it.each(invalidActors)("rejects later folder metadata before any batch writes: %j", async actor => {

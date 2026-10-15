@@ -28,7 +28,7 @@ describe("Testing function api/v2/getPoolInfo", () => {
 
     async function createMockPool(storage): Promise<CreatePoolResponse> {
         Mock.useStorage(storage.content);
-        const context = new Mock.Context(new Mock.Request("POST", { name, managementSecret: "managementSecret", joinKey: "joinKey", apps }));
+        const context = new Mock.Context(new Mock.Request("POST", { name, managementSecret: "managementSecret", joinKey: "joinKey", apps, user: "test-user" }));
         await createPool(context, context.req);
         return context.res.body as CreatePoolResponse;
     }

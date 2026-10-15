@@ -9,6 +9,7 @@ const joinPool = new ALNinjaRequestHandler<JoinPoolRequest, JoinPoolResponse>(as
 }, false);
 
 joinPool.skipAuthorization();
+joinPool.requireUser("POST");
 joinPool.validator.expect("body", {
     poolId: "string",
     joinKey: "string!",

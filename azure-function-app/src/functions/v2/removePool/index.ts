@@ -9,6 +9,7 @@ const removePool = new ALNinjaRequestHandler<RemovePoolRequest, void>(async (req
 }, false);
 
 removePool.skipAuthorization();
+removePool.requireUser("POST");
 removePool.validator.expect("body", {
     poolId: "string!",
     "deleteBlob?": "boolean",

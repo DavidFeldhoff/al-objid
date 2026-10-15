@@ -102,6 +102,7 @@ getNext.validator.expect("body", {
 });
 getNext.requirePoolSignature();
 getNext.requireSourceAppIdMatch();
+getNext.requireUser("POST");
 
 export const disableGetNextRateLimit = () => getNext.noRateLimit();
 

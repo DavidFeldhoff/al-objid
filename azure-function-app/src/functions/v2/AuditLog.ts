@@ -36,3 +36,10 @@ export function appendAuditLog(app: AppInfo, eventType: ChangeOperation, data: a
     });
     app._log = log.sort((left, right) => left.timestamp - right.timestamp).slice(-MAX_ENTRIES);
 }
+
+export function validateRequiredAuditUser(actor: AuditMetadata): void {
+    validateAuditMetadata(actor);
+    if (typeof actor.user !== "string" || actor.user.trim().length === 0) {
+        throw new ErrorResponse("user is required for this operation", 400);
+    }
+}

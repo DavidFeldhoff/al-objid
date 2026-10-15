@@ -34,7 +34,7 @@ describe("Testing function api/v2/getConsumption", () => {
 
     async function createMockPool(storage: StubStorage, allowAnyAppToManage = false): Promise<CreatePoolResponse> {
         Mock.useStorage(storage.content);
-        const context = new Mock.Context(new Mock.Request("POST", { name, managementSecret, joinKey, apps, allowAnyAppToManage }));
+        const context = new Mock.Context(new Mock.Request("POST", { name, managementSecret, joinKey, apps, allowAnyAppToManage, user: "test-user" }));
         await createPool(context, context.req);
         return context.res.body as CreatePoolResponse;
     }

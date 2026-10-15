@@ -28,7 +28,7 @@ describe("Testing function api/v2/autoSyncIds", () => {
         const storage = new StubStorage();
         Mock.useStorage(storage.content);
 
-        const context = new Mock.Context(new Mock.Request("POST", { appFolders }));
+        const context = new Mock.Context(new Mock.Request("POST", { appFolders, user: "test-user" }));
         await autoSyncIds(context, context.req);
         expect(context.res).toBeStatus(200);
         expect(storage).toHaveChanged();
@@ -53,7 +53,7 @@ describe("Testing function api/v2/autoSyncIds", () => {
         const storage = new StubStorage();
         Mock.useStorage(storage.content);
 
-        const context = new Mock.Context(new Mock.Request("PATCH", { appFolders }));
+        const context = new Mock.Context(new Mock.Request("PATCH", { appFolders, user: "test-user" }));
         await autoSyncIds(context, context.req);
         expect(context.res).toBeStatus(200);
         expect(storage).toHaveChanged();
@@ -81,7 +81,7 @@ describe("Testing function api/v2/autoSyncIds", () => {
             .setConsumption(ALObjectType.page, [3, 4, 5]);
         Mock.useStorage(storage.content);
 
-        const context = new Mock.Context(new Mock.Request("POST", { appFolders }));
+        const context = new Mock.Context(new Mock.Request("POST", { appFolders, user: "test-user" }));
         await autoSyncIds(context, context.req);
         expect(context.res).toBeStatus(200);
         expect(storage).toHaveChanged();
@@ -113,7 +113,7 @@ describe("Testing function api/v2/autoSyncIds", () => {
         storage.appInfo._forceMerge = false;
         Mock.useStorage(storage.content);
 
-        const context = new Mock.Context(new Mock.Request("POST", { appFolders: [appFolders[0]] }));
+        const context = new Mock.Context(new Mock.Request("POST", { appFolders: [appFolders[0]], user: "test-user" }));
         await autoSyncIds(context, context.req);
         expect(context.res).toBeStatus(200);
 
@@ -132,7 +132,7 @@ describe("Testing function api/v2/autoSyncIds", () => {
         storage.appInfo._forceMerge = false;
         Mock.useStorage(storage.content);
 
-        const context = new Mock.Context(new Mock.Request("PATCH", { appFolders: [appFolders[0]] }));
+        const context = new Mock.Context(new Mock.Request("PATCH", { appFolders: [appFolders[0]], user: "test-user" }));
         await autoSyncIds(context, context.req);
         expect(context.res).toBeStatus(200);
 
@@ -148,7 +148,7 @@ describe("Testing function api/v2/autoSyncIds", () => {
             .setConsumption(ALObjectType.page, [3, 4, 5]);
         Mock.useStorage(storage.content);
 
-        const context = new Mock.Context(new Mock.Request("PATCH", { appFolders }));
+        const context = new Mock.Context(new Mock.Request("PATCH", { appFolders, user: "test-user" }));
         await autoSyncIds(context, context.req);
         expect(context.res).toBeStatus(200);
         expect(storage).toHaveChanged();
@@ -177,7 +177,7 @@ describe("Testing function api/v2/autoSyncIds", () => {
             .authorize();
         Mock.useStorage(storage.content);
 
-        const context = new Mock.Context(new Mock.Request("POST", { appFolders }));
+        const context = new Mock.Context(new Mock.Request("POST", { appFolders, user: "test-user" }));
         await autoSyncIds(context, context.req);
         expect(context.res).toBeStatus(401);
     });
@@ -192,7 +192,7 @@ describe("Testing function api/v2/autoSyncIds", () => {
 
         let folders = [...appFolders];
         folders[0] = {...folders[0], authKey: storage.authKey};
-        const context = new Mock.Context(new Mock.Request("POST", { appFolders: folders }));
+        const context = new Mock.Context(new Mock.Request("POST", { appFolders: folders, user: "test-user" }));
         await autoSyncIds(context, context.req);
         expect(context.res).toBeStatus(200);
         expect(storage).toHaveChanged();

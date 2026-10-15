@@ -2,7 +2,7 @@ import { ErrorResponse, RequestHandler } from "@vjeko.com/azure-func";
 import { injectValidators } from "./injectValidators";
 import { ALNinjaRequestContext, AppBindings, AppInfo, AuditMetadata, DefaultBindings } from "./TypesV2";
 import { validatePoolSignature } from "./ValidatePoolSignature";
-import { appendAuditLog, validateAuditMetadata } from "./AuditLog";
+import { appendAuditLog, validateAuditMetadata, validateRequiredAuditUser } from "./AuditLog";
 
 injectValidators();
 
@@ -32,11 +32,15 @@ export class ALNinjaRequestHandler<TRequest, TResponse, TBindings = DefaultBindi
     private _requirePoolSignature: boolean = false;
     private _requireManagementSignature: boolean = false;
     private _requireSourceAppIdMatch: boolean = false;
+    private _requireUserMethods: string[] = [];
 
     public constructor(handler: ALNinjaHandlerFunc<TRequest, TResponse, TBindings>, withValidation: boolean = true) {
         super(async (request) => {
             const alNinjaRequest = (request as unknown as ALNinjaRequestContext<TRequest, TBindings>);
             validateAuditMetadata(request.body);
+            if (this._requireUserMethods.includes(request.method.toUpperCase())) {
+                validateRequiredAuditUser(request.body);
+            }
             alNinjaRequest.log = (app, eventType, data, actor) => {
                 appendAuditLog(app, eventType, data, actor === undefined ? request.body : actor);
             };
@@ -147,5 +151,9 @@ export class ALNinjaRequestHandler<TRequest, TResponse, TBindings = DefaultBindi
 
     public requireSourceAppIdMatch() {
         this._requireSourceAppIdMatch = true;
+    }
+
+    public requireUser(...method: string[]) {
+        this._requireUserMethods.push(...method.map(m => m.toUpperCase()));
     }
 }

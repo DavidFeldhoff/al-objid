@@ -23,7 +23,7 @@ describe("Testing function api/v2/renamePool", () => {
 
     async function createMockPool(storage: StubStorage): Promise<CreatePoolResponse> {
         Mock.useStorage(storage.content);
-        const context = new Mock.Context(new Mock.Request("POST", { name, managementSecret, joinKey }));
+        const context = new Mock.Context(new Mock.Request("POST", { name, managementSecret, joinKey, user: "test-user" }));
         await createPool(context, context.req);
         return context.res.body as CreatePoolResponse;
     }
@@ -64,7 +64,7 @@ describe("Testing function api/v2/renamePool", () => {
         const storage = new StubStorage();
         Mock.useStorage(storage.content);
 
-        const context = new Mock.Context(new Mock.Request("POST", { poolId: "_mock_", accessKey: "invalid", name: newName }));
+        const context = new Mock.Context(new Mock.Request("POST", { poolId: "_mock_", accessKey: "invalid", name: newName, user: "test-user" }));
         await renamePool(context, context.req);
         expect(context.res).toBeStatus(404);
     });
@@ -73,7 +73,7 @@ describe("Testing function api/v2/renamePool", () => {
         const storage = new StubStorage().app("_mock_");
         Mock.useStorage(storage.content);
 
-        const context = new Mock.Context(new Mock.Request("POST", { poolId: "_mock_", accessKey: "invalid", name: newName }));
+        const context = new Mock.Context(new Mock.Request("POST", { poolId: "_mock_", accessKey: "invalid", name: newName, user: "test-user" }));
         await renamePool(context, context.req);
         expect(context.res).toBeStatus(405);
     });
@@ -85,7 +85,7 @@ describe("Testing function api/v2/renamePool", () => {
         const pool = await createMockPool(storage);
         const { poolId } = pool;
 
-        const context = new Mock.Context(new Mock.Request("POST", { poolId, accessKey: "invalid_key", name: newName }));
+        const context = new Mock.Context(new Mock.Request("POST", { poolId, accessKey: "invalid_key", name: newName, user: "test-user" }));
         await renamePool(context, context.req);
         expect(context.res).toBeStatus(401);
     });
@@ -97,7 +97,7 @@ describe("Testing function api/v2/renamePool", () => {
         const pool = await createMockPool(storage);
         const { poolId, accessKey } = pool;
 
-        const context = new Mock.Context(new Mock.Request("POST", { poolId, accessKey, name: newName }));
+        const context = new Mock.Context(new Mock.Request("POST", { poolId, accessKey, name: newName, user: "test-user" }));
         await renamePool(context, context.req);
         expect(context.res).toBeStatus(200);
 

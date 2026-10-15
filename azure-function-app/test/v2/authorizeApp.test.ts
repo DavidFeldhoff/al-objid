@@ -48,14 +48,13 @@ describe("Testing function api/v2/authorizeApp", () => {
         expect(context.bindings.notify.authorization.valid).toStrictEqual(true);
     });
 
-    it("Authorizes a previously unauthorized app and logs an unknown user", async () => {
+    it("Rejects authorization without a user", async () => {
         const storage = new StubStorage().app();
         Mock.useStorage(storage.content);
         const context = new Mock.Context(new Mock.Request("POST", { appId: storage.appId }));
         await authorizeApp(context, context.req);
-        expect(context.res).toBeStatus(200);
-        expect(storage.log()).toHaveLength(1);
-        expect(storage.log()[0]).toMatchObject({ user: "Unknown user", userEncoding: "plain", eventType: "authorize" });
+        expect(context.res).toBeStatus(400);
+        expect(storage).not.toHaveChanged();
     });
 
     it("Authorizes a previously unknown app", async () => {
@@ -125,14 +124,13 @@ describe("Testing function api/v2/authorizeApp", () => {
         expect(context.bindings.notify.authorization).toBeUndefined();
     });
 
-    it("De-authorizes a previously authorized app and logs an unknown user", async () => {
+    it("Rejects de-authorization without a user", async () => {
         const storage = new StubStorage().app().authorize();
         Mock.useStorage(storage.content);
         const context = new Mock.Context(new Mock.Request("DELETE", { appId: storage.appId, authKey: storage.authKey }));
         await authorizeApp(context, context.req);
-        expect(context.res).toBeStatus(200);
-        expect(storage.log()).toHaveLength(1);
-        expect(storage.log()[0]).toMatchObject({ user: "Unknown user", userEncoding: "plain", eventType: "deauthorize" });
+        expect(context.res).toBeStatus(400);
+        expect(storage).toBeAuthorized();
     });
 
     it("Stores username, email, and timestamp in authorization log", async () => {

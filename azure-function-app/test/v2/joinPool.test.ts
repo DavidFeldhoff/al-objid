@@ -33,7 +33,7 @@ describe("Testing function api/v2/joinPool", () => {
 
     async function createMockPool(storage: StubStorage, allowAnyAppToManage = false): Promise<CreatePoolResponse> {
         Mock.useStorage(storage.content);
-        const context = new Mock.Context(new Mock.Request("POST", { name, managementSecret, joinKey, allowAnyAppToManage }));
+        const context = new Mock.Context(new Mock.Request("POST", { name, managementSecret, joinKey, allowAnyAppToManage, user: "test-user" }));
         await createPool(context, context.req);
         return context.res.body as CreatePoolResponse;
     }
@@ -74,7 +74,7 @@ describe("Testing function api/v2/joinPool", () => {
         const storage = new StubStorage();
         Mock.useStorage(storage.content);
 
-        const context = new Mock.Context(new Mock.Request("POST", { poolId: "_mock_", joinKey: "invalid", apps }));
+        const context = new Mock.Context(new Mock.Request("POST", { poolId: "_mock_", joinKey: "invalid", apps, user: "test-user" }));
         await joinPool(context, context.req);
         expect(context.res).toBeStatus(404);
     });
@@ -83,7 +83,7 @@ describe("Testing function api/v2/joinPool", () => {
         const storage = new StubStorage().app("_mock_");
         Mock.useStorage(storage.content);
 
-        const context = new Mock.Context(new Mock.Request("POST", { poolId: "_mock_", joinKey: "invalid", apps }));
+        const context = new Mock.Context(new Mock.Request("POST", { poolId: "_mock_", joinKey: "invalid", apps, user: "test-user" }));
         await joinPool(context, context.req);
         expect(context.res).toBeStatus(405);
     });
@@ -95,7 +95,7 @@ describe("Testing function api/v2/joinPool", () => {
         const pool = await createMockPool(storage);
         const { poolId } = pool;
 
-        const context = new Mock.Context(new Mock.Request("POST", { poolId, joinKey, apps }));
+        const context = new Mock.Context(new Mock.Request("POST", { poolId, joinKey, apps, user: "test-user" }));
         await joinPool(context, context.req);
         expect(context.res).toBeStatus(200);
 
@@ -111,7 +111,7 @@ describe("Testing function api/v2/joinPool", () => {
         const pool = await createMockPool(storage);
         const { poolId } = pool;
 
-        const context = new Mock.Context(new Mock.Request("POST", { poolId, joinKey: "invalid_key", apps }));
+        const context = new Mock.Context(new Mock.Request("POST", { poolId, joinKey: "invalid_key", apps, user: "test-user" }));
         await joinPool(context, context.req);
         expect(context.res).toBeStatus(401);
     });
@@ -126,7 +126,7 @@ describe("Testing function api/v2/joinPool", () => {
 
         const { _pool } = storage.content[`${poolId}.json`];
 
-        const context = new Mock.Context(new Mock.Request("POST", { poolId, joinKey, apps }));
+        const context = new Mock.Context(new Mock.Request("POST", { poolId, joinKey, apps, user: "test-user" }));
         await joinPool(context, context.req);
         expect(context.res).toBeStatus(200);
 
@@ -164,7 +164,7 @@ describe("Testing function api/v2/joinPool", () => {
 
         const { _pool } = storage.content[`${poolId}.json`];
 
-        const context = new Mock.Context(new Mock.Request("POST", { poolId, joinKey, apps }));
+        const context = new Mock.Context(new Mock.Request("POST", { poolId, joinKey, apps, user: "test-user" }));
         await joinPool(context, context.req);
         expect(context.res).toBeStatus(200);
 

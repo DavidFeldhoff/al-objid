@@ -9,6 +9,7 @@ const leavePool = new ALNinjaRequestHandler<LeavePoolRequest, void>(async (reque
 }, false);
 
 leavePool.skipAuthorization();
+leavePool.requireUser("POST");
 leavePool.validator.expect("body", {
     poolId: "string",
     accessKey: "string!",

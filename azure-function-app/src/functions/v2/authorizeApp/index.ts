@@ -49,6 +49,7 @@ const authorizeApp = new ALNinjaRequestHandler<AuthorizeAppRequest, AuthorizeApp
 
 authorizeApp.skipAuthorization();
 authorizeApp.notForPools("DELETE", "POST");
+authorizeApp.requireUser("POST", "DELETE");
 
 export const disableAuthorizeAppRateLimit = () => authorizeApp.noRateLimit();
 

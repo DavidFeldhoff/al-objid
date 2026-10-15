@@ -9,6 +9,7 @@ const renamePool = new ALNinjaRequestHandler<RenamePoolRequest, void>(async (req
 }, false);
 
 renamePool.skipAuthorization();
+renamePool.requireUser("POST");
 renamePool.validator.expect("body", {
     poolId: "string!",
     accessKey: "string!",

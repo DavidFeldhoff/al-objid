@@ -147,7 +147,7 @@ describe("Testing function api/v2/createPool", () => {
         const name = "_mock_pool_";
         const storage = new StubStorage();
         Mock.useStorage(storage.content);
-        const context = new Mock.Context(new Mock.Request("POST", { name, managementSecret: "managementSecret", joinKey: "joinKey" }));
+        const context = new Mock.Context(new Mock.Request("POST", { name, managementSecret: "managementSecret", joinKey: "joinKey", user: "test-user" }));
         await createPool(context, context.req);
         expect(context.res).toBeStatus(200);
         expect(storage).toHaveChanged();
@@ -186,7 +186,7 @@ describe("Testing function api/v2/createPool", () => {
     it("Succeeds creating pool with management access for all apps", async () => {
         const storage = new StubStorage();
         Mock.useStorage(storage.content);
-        const context = new Mock.Context(new Mock.Request("POST", { name: "name", managementSecret: "managementSecret", joinKey: "joinKey", allowAnyAppToManage: true }));
+        const context = new Mock.Context(new Mock.Request("POST", { name: "name", managementSecret: "managementSecret", joinKey: "joinKey", allowAnyAppToManage: true, user: "test-user" }));
         await createPool(context, context.req);
         expect(context.res).toBeStatus(200);
         expect(storage).toHaveChanged();
@@ -213,7 +213,7 @@ describe("Testing function api/v2/createPool", () => {
 
         const storage = new StubStorage();
         Mock.useStorage(storage.content);
-        const context = new Mock.Context(new Mock.Request("POST", { name, managementSecret: "managementSecret", joinKey: "joinKey", apps }));
+        const context = new Mock.Context(new Mock.Request("POST", { name, managementSecret: "managementSecret", joinKey: "joinKey", apps, user: "test-user" }));
         await createPool(context, context.req);
         expect(context.res).toBeStatus(200);
         expect(storage).toHaveChanged();
@@ -244,7 +244,7 @@ describe("Testing function api/v2/createPool", () => {
         const name = "_mock_pool_";
         const storage = new StubStorage();
         Mock.useStorage(storage.content);
-        const context = new Mock.Context(new Mock.Request("POST", { name, managementSecret: "managementSecret", joinKey: "joinKey" }));
+        const context = new Mock.Context(new Mock.Request("POST", { name, managementSecret: "managementSecret", joinKey: "joinKey", user: "test-user" }));
         await createPool(context, context.req);
         expect(context.res).toBeStatus(200);
 

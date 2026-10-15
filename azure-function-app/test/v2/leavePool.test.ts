@@ -30,7 +30,7 @@ describe("Testing function api/v2/leavePool", () => {
 
     async function createMockPool(storage: StubStorage, initialApps: { appId: string, name: string }[] = []): Promise<CreatePoolResponse> {
         Mock.useStorage(storage.content);
-        const context = new Mock.Context(new Mock.Request("POST", { name, managementSecret, joinKey, apps: initialApps }));
+        const context = new Mock.Context(new Mock.Request("POST", { name, managementSecret, joinKey, apps: initialApps, user: "test-user" }));
         await createPool(context, context.req);
         return context.res.body as CreatePoolResponse;
     }
@@ -71,7 +71,7 @@ describe("Testing function api/v2/leavePool", () => {
         const storage = new StubStorage();
         Mock.useStorage(storage.content);
 
-        const context = new Mock.Context(new Mock.Request("POST", { poolId: "_mock_", accessKey: "invalid", apps: leaveApps }));
+        const context = new Mock.Context(new Mock.Request("POST", { poolId: "_mock_", accessKey: "invalid", apps: leaveApps, user: "test-user" }));
         await leavePool(context, context.req);
         expect(context.res).toBeStatus(404);
     });
@@ -80,7 +80,7 @@ describe("Testing function api/v2/leavePool", () => {
         const storage = new StubStorage().app("_mock_");
         Mock.useStorage(storage.content);
 
-        const context = new Mock.Context(new Mock.Request("POST", { poolId: "_mock_", accessKey: "invalid", apps: leaveApps }));
+        const context = new Mock.Context(new Mock.Request("POST", { poolId: "_mock_", accessKey: "invalid", apps: leaveApps, user: "test-user" }));
         await leavePool(context, context.req);
         expect(context.res).toBeStatus(405);
     });
@@ -92,7 +92,7 @@ describe("Testing function api/v2/leavePool", () => {
         const pool = await createMockPool(storage, existingApps);
         const { poolId, accessKey } = pool;
 
-        const context = new Mock.Context(new Mock.Request("POST", { poolId, accessKey, apps: leaveApps }));
+        const context = new Mock.Context(new Mock.Request("POST", { poolId, accessKey, apps: leaveApps, user: "test-user" }));
 
         await leavePool(context, context.req);
         expect(context.res).toBeStatus(409);
@@ -105,7 +105,7 @@ describe("Testing function api/v2/leavePool", () => {
         const pool = await createMockPool(storage, existingApps);
         const { poolId } = pool;
 
-        const context = new Mock.Context(new Mock.Request("POST", { poolId, accessKey: "invalid_key", apps: [existingApps[0]] }));
+        const context = new Mock.Context(new Mock.Request("POST", { poolId, accessKey: "invalid_key", apps: [existingApps[0]], user: "test-user" }));
         await leavePool(context, context.req);
         expect(context.res).toBeStatus(401);
     });
@@ -120,7 +120,7 @@ describe("Testing function api/v2/leavePool", () => {
         const leaveKey = createdPool.leaveKeys[createdPool.appIds[0]];
         const leaveKeyRemaining = createdPool.leaveKeys[createdPool.appIds[1]];
 
-        const context = new Mock.Context(new Mock.Request("POST", { poolId, accessKey, apps: [{ ...existingApps[0], leaveKey }] }));
+        const context = new Mock.Context(new Mock.Request("POST", { poolId, accessKey, apps: [{ ...existingApps[0], leaveKey }], user: "test-user" }));
         await leavePool(context, context.req);
         expect(context.res).toBeStatus(200);
 
